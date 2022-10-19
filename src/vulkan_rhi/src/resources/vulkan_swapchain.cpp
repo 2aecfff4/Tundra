@@ -150,7 +150,8 @@ VulkanSwapchain::VulkanSwapchain(
         .imageColorSpace = m_surface_format.colorSpace,
         .imageExtent = swapchain_extent,
         .imageArrayLayers = 1,
-        .imageUsage = VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+        .imageUsage = VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+                      VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
         .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
         .preTransform = pre_transform,
         .compositeAlpha = composite_alfa_flag,
