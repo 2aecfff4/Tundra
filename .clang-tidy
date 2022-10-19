@@ -15,4 +15,12 @@ Checks: "*,\
   -hicpp-uppercase-literal-suffix, \
   -readability-identifier-length, \
   -cppcoreguidelines-explicit-virtual-functions, \
-  -readability-function-cognitive-complexity"
+  -readability-function-cognitive-complexity, \
+  -cppcoreguidelines-non-private-member-variables-in-classes, \
+  -misc-non-private-member-variables-in-classes, \
+  -modernize-use-auto, \
+  -hicpp-use-auto"
+
+CheckOptions:
+  -key: hicpp-signed-bitwise.IgnorePositiveIntegerLiterals
+  -value: true
