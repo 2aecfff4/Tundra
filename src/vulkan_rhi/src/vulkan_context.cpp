@@ -80,6 +80,7 @@ void VulkanContext::create_device() noexcept
                 .samplerAnisotropy = true,
                 .vertexPipelineStoresAndAtomics = true,
                 .fragmentStoresAndAtomics = true,
+                .shaderInt64 = true,
             },
     };
 
