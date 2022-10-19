@@ -15,10 +15,8 @@
 
 ///
 struct MeshletCullingUBO {
-    float4x4 world_to_view;
     float4 frustum_planes[6];
-    float3 camera_position;
-    uint max_num_meshlets;
+    uint max_meshlet_count;
 
     struct {
         uint visible_mesh_instances_srv;
@@ -106,7 +104,7 @@ bool cull_meshlet(
         global_meshlet_offset = WaveReadLaneFirst(global_meshlet_offset);
 
         if (is_visible && (meshlet_index < mesh_descriptor.meshlet_count) &&
-            ((global_meshlet_offset + meshlet_offset) < ubo.max_num_meshlets)) {
+            ((global_meshlet_offset + meshlet_offset) < ubo.max_meshlet_count)) {
             tundra::buffer_store<false>(
                 ubo.out_.visible_meshlets_uav,
                 0,
