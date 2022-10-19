@@ -22,9 +22,13 @@ struct GpuRasterizeDebugUBO {
 
     const RWTexture2D<uint64_t> input = g_rw_textures2D_uint64[ubo.input_srv];
     RWTexture2D<float4> output = g_rw_textures2D_float4[ubo.output_uav];
-    const uint64_t v = input[dispatch_id.xy] & 0xFFFFFFFF;
+    const uint64_t v = input[dispatch_id.xy];
+    const float depth = asfloat((int)(v >> 32));
+    const uint meshlet_triangle = (uint)(v & 0xFFFFFFFF);
 
-    const uint hash = hash_uint((uint)v);
+    // const float3 color = (float3)(0.0001 / depth);
+
+    const uint hash = hash_uint(meshlet_triangle >> 7);
     const float3 color = float3(
                              float(hash & 0xff),
                              float((hash >> 8) & 0xff),
