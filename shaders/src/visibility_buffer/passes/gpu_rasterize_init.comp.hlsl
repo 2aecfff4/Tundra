@@ -52,5 +52,5 @@ struct Input {
     }
 
     RWTexture2D<uint64_t> tex = g_rw_textures2D_uint64[ubo.out_texture_uav];
-    tex[idx] = 0;
+    tex[idx] = 0xFFFFFFFF;
 }
