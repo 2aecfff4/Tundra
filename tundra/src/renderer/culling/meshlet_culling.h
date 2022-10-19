@@ -14,6 +14,7 @@ namespace tundra::renderer::culling {
 struct MeshletCullingInput {
 public:
     std::array<math::Vec4, 6> frustum_planes;
+    math::Mat4 world_to_view;
     u32 max_meshlet_count = 0;
 
 public:

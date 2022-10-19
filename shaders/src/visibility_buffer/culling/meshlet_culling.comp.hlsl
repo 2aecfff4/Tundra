@@ -15,13 +15,18 @@
 
 ///
 struct MeshletCullingUBO {
+    float4x4 projection;
+    float4x4 world_to_view;
     float4 frustum_planes[6];
+    float z_near;
     uint max_meshlet_count;
 
     struct {
         uint visible_mesh_instances_srv;
         uint mesh_descriptors_srv;
         uint mesh_instance_transforms_srv;
+        uint previous_frame_depth_texture_srv;
+        uint depth_texture_sampler;
     } in_;
 
     struct {
@@ -36,21 +41,6 @@ struct Input {
     uint meshlet_index : SV_GroupThreadID;
     uint thread_id : SV_DispatchThreadID;
 };
-
-///
-bool cull_meshlet(
-    const in MeshletCullingUBO ubo,
-    const MeshDescriptor mesh_descriptor,
-    const InstanceTransform instance_transform,
-    const Meshlet meshlet)
-{
-    const float3 center = (quat_rotate_vector(instance_transform.quat, meshlet.center) *
-                           instance_transform.scale) +
-                          instance_transform.position;
-    const float radius = meshlet.radius;
-
-    return frustum_culling(ubo.frustum_planes, center, radius);
-}
 
 ///
 [numthreads(NUM_THREADS_X, 1, 1)] void main(const Input input) {
@@ -83,7 +73,23 @@ bool cull_meshlet(
         bool is_visible = false;
         if (meshlet_index < mesh_descriptor.meshlet_count) {
             const Meshlet meshlet = mesh_descriptor.get_meshlet(meshlet_index);
-            is_visible = cull_meshlet(ubo, mesh_descriptor, instance_transform, meshlet);
+
+            const float3 center = mul(ubo.world_to_view,
+                                      float4(
+                                          ((quat_rotate_vector(
+                                                instance_transform.quat, meshlet.center) *
+                                            instance_transform.scale) +
+                                           instance_transform.position),
+                                          1))
+                                      .xyz;
+
+            const float radius = meshlet.radius;
+
+            is_visible = frustum_culling(ubo.frustum_planes, center, radius);
+
+            if (is_visible && (ubo.in_.previous_frame_depth_texture_srv != 0xFFFFFFFF)) {
+                // #TODO: Depth culling
+            }
         }
 
         // Count number of lanes with `is_visible` set to true(lane indices smaller than this lane’s)

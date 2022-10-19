@@ -98,6 +98,7 @@ namespace tundra::renderer {
         fg,
         culling::MeshletCullingInput {
             .frustum_planes = frustum_planes,
+            .world_to_view = input.world_to_view,
             .max_meshlet_count = max_meshlet_count,
             .mesh_descriptors = input.gpu_mesh_descriptors,
             .mesh_instance_transforms = input.gpu_mesh_instance_transforms,

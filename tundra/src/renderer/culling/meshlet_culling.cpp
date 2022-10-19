@@ -8,13 +8,18 @@ namespace ubo {
 
 ///
 struct MeshletCullingUBO {
+    math::Mat4 projection;
+    math::Mat4 world_to_view;
     std::array<math::Vec4, 6> frustum_planes;
+    float z_near;
     u32 max_meshlet_count;
 
     struct {
         u32 visible_mesh_instances_srv;
         u32 mesh_descriptors_srv;
         u32 mesh_instance_transforms_srv;
+        u32 previous_frame_depth_texture_srv = 0xFF'FF'FF'FF;
+        u32 depth_texture_sampler = 0xFF'FF'FF'FF;
     } in_;
 
     struct {
@@ -109,6 +114,7 @@ inline constexpr u32 MAX_VISIBLE_MESHLETS_COUNT = (1u << 20u) * 4u;
                 data.visible_meshlets_count);
 
             const ubo::MeshletCullingUBO ubo {
+                .world_to_view = input.world_to_view,
                 .frustum_planes = input.frustum_planes,
                 .max_meshlet_count = input.max_meshlet_count,
                 .in_ = {
