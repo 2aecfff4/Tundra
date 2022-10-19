@@ -1,8 +1,8 @@
-#include "renderer/culling/meshlet_culling.h"
+#include "renderer/common/culling/meshlet_culling.h"
 #include "rhi/commands/dispatch_indirect.h"
 #include "rhi/rhi_context.h"
 
-namespace tundra::renderer::culling {
+namespace tundra::renderer::common::culling {
 
 namespace ubo {
 
@@ -152,4 +152,4 @@ inline constexpr u32 MAX_VISIBLE_MESHLETS_COUNT = (1u << 20u) * 4u;
     };
 }
 
-} // namespace tundra::renderer::culling
+} // namespace tundra::renderer::common::culling

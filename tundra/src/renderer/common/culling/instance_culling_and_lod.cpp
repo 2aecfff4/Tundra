@@ -1,9 +1,9 @@
-#include "renderer/culling/instance_culling_and_lod.h"
+#include "renderer/common/culling/instance_culling_and_lod.h"
 #include "rhi/commands/dispatch_indirect.h"
 #include "rhi/rhi_context.h"
 #include <array>
 
-namespace tundra::renderer::culling {
+namespace tundra::renderer::common::culling {
 
 namespace ubo {
 
@@ -136,4 +136,4 @@ InstanceCullingOutput instance_culling_and_lod(
     };
 }
 
-} // namespace tundra::renderer::culling
+} // namespace tundra::renderer::common::culling

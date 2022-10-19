@@ -9,4 +9,6 @@ inline constexpr u32 NUM_MESHLETS_PER_INDEX_BUFFER = 8192;
 inline constexpr u32 INDEX_BUFFER_BATCH_SIZE = NUM_MESHLETS_PER_INDEX_BUFFER * 128u * 3u;
 inline constexpr u32 NUM_INDEX_BUFFERS_IN_FIGHT = 4;
 
+inline constexpr usize NUM_PLANES = 6;
+
 } // namespace tundra::renderer::config

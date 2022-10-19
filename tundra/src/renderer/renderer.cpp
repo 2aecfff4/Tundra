@@ -1,21 +1,17 @@
 #include "renderer/renderer.h"
 #include "math/matrix4.h"
 #include "math/vector4.h"
-#include "renderer/config.h"
 #include "renderer/frame_graph/frame_graph.h"
-#include "renderer/ubo.h"
 #include "rhi/commands/command_encoder.h"
-#include "rhi/commands/dispatch_indirect.h"
-#include "rhi/commands/draw_indirect.h"
 #include "rhi/rhi_context.h"
 #include "shader.h"
 #include <array>
 
-#include "renderer/culling/instance_culling_and_lod.h"
-#include "renderer/culling/meshlet_culling.h"
-#include "renderer/passes/gpu_rasterize_debug_pass.h"
-#include "renderer/passes/gpu_rasterizer.h"
-#include "renderer/passes/gpu_rasterizer_init.h"
+#include "renderer/common/culling/instance_culling_and_lod.h"
+#include "renderer/common/culling/meshlet_culling.h"
+#include "renderer/software/passes/gpu_rasterize_debug_pass.h"
+#include "renderer/software/passes/gpu_rasterizer.h"
+#include "renderer/software/passes/gpu_rasterizer_init.h"
 
 namespace tundra::renderer {
 
