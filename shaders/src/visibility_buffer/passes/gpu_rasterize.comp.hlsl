@@ -75,11 +75,15 @@ void rasterize(
     }
 
     // Pixel boundaries
-    uint2 min_p = floor(min(min(p0.xy, p1.xy), p2.xy));
-    uint2 max_p = ceil(max(max(p0.xy, p1.xy), p2.xy));
+    float2 min_p = floor(min(min(p0.xy, p1.xy), p2.xy));
+    float2 max_p = ceil(max(max(p0.xy, p1.xy), p2.xy));
+    if ((max_p.x < 0.0f) || (max_p.y < 0.0f) || (min_p.x >= ubo.view_size.x) ||
+        (min_p.y >= ubo.view_size.y)) {
+        return;
+    }
 
-    min_p = clamp(min_p, uint2(0, 0), ubo.view_size);
-    max_p = clamp(max_p, uint2(0, 0), ubo.view_size - 1);
+    min_p = clamp(min_p, float2(0, 0), ubo.view_size);
+    max_p = clamp(max_p, float2(0, 0), ubo.view_size - 1);
 
     if (any(min_p > max_p)) {
         // Pixel is not visible
