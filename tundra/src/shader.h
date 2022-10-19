@@ -121,28 +121,3 @@ struct MeshDescriptor {
 };
 
 } // namespace tundra::renderer
-
-namespace tundra::pipelines {
-
-inline constexpr const char* INSTANCE_CULLING_AND_LOD_PIPELINE_NAME =
-    "instance_culling_and_lod.comp";
-
-inline constexpr const char* MESHLET_CULLING_NAME = "meshlet_culling.comp";
-
-inline constexpr const char* CLEAR_INDEX_BUFFER_GENERATOR_DISPATCH_ARGS_NAME =
-    "clear_index_buffer_generator_dispatch_args.comp";
-
-inline constexpr const char* GENERATE_INDEX_BUFFER_GENERATOR_DISPATCH_ARGS_NAME =
-    "generate_index_buffer_generator_dispatch_args.comp";
-
-inline constexpr const char* INDEX_BUFFER_GENERATOR_NAME = "index_buffer_generator.comp";
-
-inline constexpr const char* VISIBILITY_BUFFER_PASS = "visibility_buffer_pass.pipeline";
-
-inline constexpr const char* GPU_RASTERIZE_INIT_NAME = "gpu_rasterize_init.comp";
-
-inline constexpr const char* GPU_RASTERIZE_PASS_NAME = "gpu_rasterize.comp";
-
-inline constexpr const char* GPU_RASTERIZE_DEBUG_PASS_NAME = "gpu_rasterize_debug.comp";
-
-} // namespace tundra::pipelines
