@@ -18,12 +18,12 @@
 ///
 struct GPURasterizeUBO {
     float4x4 world_to_clip;
-    float2 view_size;
+    uint2 view_size;
 
     struct {
         uint mesh_instance_transforms_srv;
-        uint visible_meshlets_srv;
         uint mesh_descriptors_srv;
+        uint visible_meshlets_srv;
     } in_;
 
     struct {
