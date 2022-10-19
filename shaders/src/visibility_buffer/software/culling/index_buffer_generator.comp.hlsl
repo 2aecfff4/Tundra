@@ -74,7 +74,6 @@ groupshared uint3 g_indices[128];
     const Meshlet meshlet = mesh_descriptor.get_meshlet(visible_meshlet.meshlet_index);
 
     if (input.group_thread_id == 0) {
-        // if (WaveIsFirstLane()) {
         for (uint triangle_index = 0; triangle_index < meshlet.triangle_count;
              ++triangle_index) {
             g_indices[triangle_index] = tundra::buffer_load<true, uint3>(
@@ -129,8 +128,6 @@ groupshared uint3 g_indices[128];
 
     index_offset = WaveReadLaneFirst(index_offset);
 
-    // if (is_visible && (triangle_offset < meshlet.triangle_count) &&
-    //     ((index_offset + visible_triangles_count * 3) < ubo.max_num_indices)) {
     if (is_visible && (triangle_offset < meshlet.triangle_count) &&
         ((index_offset + triangle_offset * 3) < ubo.max_num_indices)) {
         const uint shifted_visible_meshlet_index = visible_meshlet_index
@@ -142,66 +139,4 @@ groupshared uint3 g_indices[128];
             triangle_offset,
             shifted_visible_meshlet_index | g_indices[triangle_index]);
     }
-
-    /////////////////////////////////////
-
-    /*
-
-    if (input.group_thread_id == 0) {
-        tundra::buffer_interlocked_add<false>(
-            ubo.out_.draw_meshlets_draw_args_uav,
-            sizeof(DrawIndexedIndirectCommand) * ubo.generator_index,
-            meshlet.triangle_count * 3,
-            global_index_offset);
-    }
-
-    DeviceMemoryBarrierWithGroupSync();
-
-    const uint shifted_visible_meshlet_index = visible_meshlet_index << VERTEX_ID_BITS;
-    const uint triangle_index = input.triangle_index;
-    if ((triangle_index < meshlet.triangle_count) &&
-        ((global_index_offset + meshlet.triangle_count * 3) < ubo.max_num_indices)) {
-        const uint3 indices = tundra::buffer_load<true, uint3>(
-            mesh_descriptor.mesh_data_buffer_srv,
-            mesh_descriptor.meshlet_triangles_offset +
-                (meshlet.triangle_offset * sizeof(uint)),
-            triangle_index);
-
-        tundra::buffer_store<false>(
-            ubo.out_.index_buffer_uav,
-            global_index_offset * sizeof(uint),
-            triangle_index,
-            shifted_visible_meshlet_index | indices);
-
-        // const uint index_0 = tundra::buffer_load<true, uint>(
-        //     mesh_descriptor.mesh_data_buffer_srv,
-        //     mesh_descriptor.meshlet_triangles_offset,
-        //     meshlet.triangle_offset + (triangle_index * 3) + 0);
-        // const uint index_1 = tundra::buffer_load<true, uint>(
-        //     mesh_descriptor.mesh_data_buffer_srv,
-        //     mesh_descriptor.meshlet_triangles_offset,
-        //     meshlet.triangle_offset + (triangle_index * 3) + 1);
-        // const uint index_2 = tundra::buffer_load<true, uint>(
-        //     mesh_descriptor.mesh_data_buffer_srv,
-        //     mesh_descriptor.meshlet_triangles_offset,
-        //     meshlet.triangle_offset + (triangle_index * 3) + 2);
-
-        // const uint3 indices = uint3(index_0, index_1, index_2);
-
-        // const uint3 indices = tundra::buffer_load_raw<true, uint3>(
-        //     mesh_descriptor.mesh_data_buffer_srv,
-        //     mesh_descriptor.meshlet_triangles_offset +
-        //         ((meshlet.triangle_offset + (triangle_index * 3)) * sizeof(uint)));
-
-        // UNROLL
-        // for (uint i = 0; i < 3; ++i) {
-        //     tundra::buffer_store<false>(
-        //         ubo.out_.index_buffer_uav,
-        //         0,
-        //         global_index_offset + (triangle_index * 3) + i,
-        //         shifted_visible_meshlet_index | indices[i]);
-        // }
-    }
-
-    */
 }
