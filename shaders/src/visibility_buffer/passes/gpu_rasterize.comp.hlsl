@@ -47,9 +47,9 @@ void write_pixel(
     const uint2 pos,
     const float z)
 {
-    const uint meshlet_triangle = (meshlet_index << VERTEX_ID_BITS) & triangle_index;
+    const uint meshlet_triangle = (meshlet_index << VERTEX_ID_BITS) | triangle_index;
     const uint depth_uint = asuint(z);
-    const uint64_t value = ((uint64_t)meshlet_triangle << (uint64_t)32) | depth_uint;
+    const uint64_t value = (((uint64_t)depth_uint << (uint64_t)32)) | meshlet_triangle;
     InterlockedMax(texture[pos], value);
 }
 
@@ -70,7 +70,7 @@ void rasterize(
     const float3 p10 = p1 - p0;
     const float3 p20 = p2 - p0;
     const float det = p20.x * p10.y - p20.y * p10.x;
-    if (det >= 0.0f) {
+    if (det <= 0.0f) {
         return;
     }
 
@@ -78,9 +78,8 @@ void rasterize(
     uint2 min_p = floor(min(min(p0.xy, p1.xy), p2.xy));
     uint2 max_p = ceil(max(max(p0.xy, p1.xy), p2.xy));
 
-    // Clip
-    min_p = max(min_p, ubo.view_size);
-    max_p = min(max_p, ubo.view_size - 1);
+    min_p = clamp(min_p, uint2(0, 0), ubo.view_size);
+    max_p = clamp(max_p, uint2(0, 0), ubo.view_size - 1);
 
     if (any(min_p > max_p)) {
         // Pixel is not visible
@@ -150,15 +149,13 @@ groupshared float3 g_vertices[64];
     {
         const uint vertex_index = input.triangle_index;
         if (vertex_index < meshlet.vertex_count) {
-            float3 vertex = tundra::buffer_load<true, float3>(
-                mesh_descriptor.vertex_buffer_offset,
-                mesh_descriptor.meshlet_triangles_offset +
-                    (meshlet.vertex_offset * sizeof(float)),
-                vertex_index);
+            float3 vertex = mesh_descriptor.get_vertex(meshlet, vertex_index);
+
             vertex = (quat_rotate_vector(instance_transform.quat, vertex) *
                       instance_transform.scale) +
                      instance_transform.position;
-            const float4 transformed_vertex = mul(ubo.world_to_clip, float4(vertex, 1.f));
+            float4 transformed_vertex = mul(ubo.world_to_clip, float4(vertex, 1.f));
+            transformed_vertex.y *= -1.f;
 
             const float3 subpixel = transformed_vertex.xyz / transformed_vertex.w;
             const float2 xy = round(
