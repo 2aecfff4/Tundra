@@ -332,142 +332,80 @@ private:
             return buffer;
         };
 
+        const auto create_compute_pipeline = [&](const core::String& path) {
+            const core::Array<char> shader_buffer = read_file(path);
+            const rhi::ShaderHandle shader = globals::g_rhi_context->create_shader(
+                rhi::ShaderCreateInfo {
+                    .shader_stage = rhi::ShaderStage::ComputeShader,
+                    .shader_buffer = core::as_span(shader_buffer),
+                });
+            tndr_defer {
+                globals::g_rhi_context->destroy_shader(shader);
+            };
+
+            return globals::g_rhi_context->create_compute_pipeline(
+                rhi::ComputePipelineCreateInfo {
+                    .compute_shader = shader,
+                    .name = pipelines::INSTANCE_CULLING_AND_LOD_PIPELINE_NAME,
+                });
+        };
+
         // instance_culling_and_lod
-        {
-            const core::Array<char> shader_buffer = read_file(
+        m_compute_pipelines.insert({
+            pipelines::MESHLET_CULLING_NAME,
+            create_compute_pipeline(
                 ASSET_PATH + "shaders/visibility_buffer/culling/"
-                             "instance_culling_and_lod.comp.hlsl.spv");
-            const rhi::ShaderHandle shader = globals::g_rhi_context->create_shader(
-                rhi::ShaderCreateInfo {
-                    .shader_stage = rhi::ShaderStage::ComputeShader,
-                    .shader_buffer = core::as_span(shader_buffer),
-                });
-            tndr_defer {
-                globals::g_rhi_context->destroy_shader(shader);
-            };
-
-            const rhi::ComputePipelineHandle pipeline =
-                globals::g_rhi_context->create_compute_pipeline(
-                    rhi::ComputePipelineCreateInfo {
-                        .compute_shader = shader,
-                        .name = pipelines::INSTANCE_CULLING_AND_LOD_PIPELINE_NAME,
-                    });
-
-            m_compute_pipelines.insert({
-                pipelines::INSTANCE_CULLING_AND_LOD_PIPELINE_NAME,
-                pipeline,
-            });
-        }
+                             "instance_culling_and_lod.comp.hlsl.spv"),
+        });
 
         // meshlet_culling
-        {
-            const core::Array<char> shader_buffer = read_file(
+        m_compute_pipelines.insert({
+            pipelines::MESHLET_CULLING_NAME,
+            create_compute_pipeline(
                 ASSET_PATH + "shaders/visibility_buffer/culling/"
-                             "meshlet_culling.comp.hlsl.spv");
-            const rhi::ShaderHandle shader = globals::g_rhi_context->create_shader(
-                rhi::ShaderCreateInfo {
-                    .shader_stage = rhi::ShaderStage::ComputeShader,
-                    .shader_buffer = core::as_span(shader_buffer),
-                });
-            tndr_defer {
-                globals::g_rhi_context->destroy_shader(shader);
-            };
+                             "meshlet_culling.comp.hlsl.spv"),
+        });
 
-            const rhi::ComputePipelineHandle pipeline =
-                globals::g_rhi_context->create_compute_pipeline(
-                    rhi::ComputePipelineCreateInfo {
-                        .compute_shader = shader,
-                        .name = pipelines::MESHLET_CULLING_NAME,
-                    });
-
-            m_compute_pipelines.insert({
-                pipelines::MESHLET_CULLING_NAME,
-                pipeline,
-            });
-        }
-
-        // meshlet_culling
-        {
-            const core::Array<char> shader_buffer = read_file(
+        // clear_index_buffer_generator_dispatch_args
+        m_compute_pipelines.insert({
+            pipelines::CLEAR_INDEX_BUFFER_GENERATOR_DISPATCH_ARGS_NAME,
+            create_compute_pipeline(
                 ASSET_PATH + "shaders/visibility_buffer/culling/"
-                             "clear_index_buffer_generator_dispatch_args.comp.hlsl.spv");
-            const rhi::ShaderHandle shader = globals::g_rhi_context->create_shader(
-                rhi::ShaderCreateInfo {
-                    .shader_stage = rhi::ShaderStage::ComputeShader,
-                    .shader_buffer = core::as_span(shader_buffer),
-                });
-            tndr_defer {
-                globals::g_rhi_context->destroy_shader(shader);
-            };
-
-            const rhi::ComputePipelineHandle pipeline =
-                globals::g_rhi_context->create_compute_pipeline(
-                    rhi::ComputePipelineCreateInfo {
-                        .compute_shader = shader,
-                        .name = pipelines::MESHLET_CULLING_NAME,
-                    });
-
-            m_compute_pipelines.insert({
-                pipelines::CLEAR_INDEX_BUFFER_GENERATOR_DISPATCH_ARGS_NAME,
-                pipeline,
-            });
-        }
+                             "clear_index_buffer_generator_dispatch_args.comp.hlsl.spv"),
+        });
 
         // generate_index_buffer_generator_dispatch_args
-        {
-            const core::Array<char> shader_buffer = read_file(
+        m_compute_pipelines.insert({
+            pipelines::GENERATE_INDEX_BUFFER_GENERATOR_DISPATCH_ARGS_NAME,
+            create_compute_pipeline(
                 ASSET_PATH +
                 "shaders/visibility_buffer/culling/"
-                "generate_index_buffer_generator_dispatch_args.comp.hlsl.spv");
-            const rhi::ShaderHandle shader = globals::g_rhi_context->create_shader(
-                rhi::ShaderCreateInfo {
-                    .shader_stage = rhi::ShaderStage::ComputeShader,
-                    .shader_buffer = core::as_span(shader_buffer),
-                });
-            tndr_defer {
-                globals::g_rhi_context->destroy_shader(shader);
-            };
-
-            const rhi::ComputePipelineHandle pipeline =
-                globals::g_rhi_context->create_compute_pipeline(
-                    rhi::ComputePipelineCreateInfo {
-                        .compute_shader = shader,
-                        .name =
-                            pipelines::GENERATE_INDEX_BUFFER_GENERATOR_DISPATCH_ARGS_NAME,
-                    });
-
-            m_compute_pipelines.insert({
-                pipelines::GENERATE_INDEX_BUFFER_GENERATOR_DISPATCH_ARGS_NAME,
-                pipeline,
-            });
-        }
+                "generate_index_buffer_generator_dispatch_args.comp.hlsl.spv"),
+        });
 
         // index_buffer_generator
-        {
-            const core::Array<char> shader_buffer = read_file(
+        m_compute_pipelines.insert({
+            pipelines::INDEX_BUFFER_GENERATOR_NAME,
+            create_compute_pipeline(
                 ASSET_PATH + "shaders/visibility_buffer/culling/"
-                             "index_buffer_generator.comp.hlsl.spv");
-            const rhi::ShaderHandle shader = globals::g_rhi_context->create_shader(
-                rhi::ShaderCreateInfo {
-                    .shader_stage = rhi::ShaderStage::ComputeShader,
-                    .shader_buffer = core::as_span(shader_buffer),
-                });
-            tndr_defer {
-                globals::g_rhi_context->destroy_shader(shader);
-            };
+                             "index_buffer_generator.comp.hlsl.spv"),
+        });
 
-            const rhi::ComputePipelineHandle pipeline =
-                globals::g_rhi_context->create_compute_pipeline(
-                    rhi::ComputePipelineCreateInfo {
-                        .compute_shader = shader,
-                        .name = pipelines::INDEX_BUFFER_GENERATOR_NAME,
-                    });
+        // gpu_rasterize
+        m_compute_pipelines.insert({
+            pipelines::GPU_RASTERIZE_PASS_NAME,
+            create_compute_pipeline(
+                ASSET_PATH + "shaders/visibility_buffer/passes/"
+                             "gpu_rasterize.comp.hlsl.spv"),
+        });
 
-            m_compute_pipelines.insert({
-                pipelines::INDEX_BUFFER_GENERATOR_NAME,
-                pipeline,
-            });
-        }
+        // gpu_rasterize_debug
+        m_compute_pipelines.insert({
+            pipelines::GPU_RASTERIZE_DEBUG_PASS_NAME,
+            create_compute_pipeline(
+                ASSET_PATH + "shaders/visibility_buffer/passes/"
+                             "gpu_rasterize_debug.comp.hlsl.spv"),
+        });
 
         // visibility_buffer_pass
         {
