@@ -16,11 +16,12 @@ class FrameGraph;
 
 namespace tundra::renderer {
 
+using ComputePipelinesMap = core::HashMap<core::String, rhi::ComputePipelineHandle>;
+using GraphicsPipelinesMap = core::HashMap<core::String, rhi::GraphicsPipelineHandle>;
+
 ///
 struct RenderInput {
 public:
-    using ComputePipelinesMap = core::HashMap<core::String, rhi::ComputePipelineHandle>;
-    using GraphicsPipelinesMap = core::HashMap<core::String, rhi::GraphicsPipelineHandle>;
 
 public:
     /// View
@@ -54,5 +55,14 @@ struct RenderOutput {
 ///
 [[nodiscard]] RenderOutput render(
     frame_graph::FrameGraph& fg, const RenderInput& input) noexcept;
+
+///
+template <typename Map>
+[[nodiscard]] auto get_pipeline(const char* name, const Map& map) noexcept
+{
+    const auto it = map.find(name);
+    tndr_assert(it != map.end(), "");
+    return it->second;
+}
 
 } // namespace tundra::renderer
