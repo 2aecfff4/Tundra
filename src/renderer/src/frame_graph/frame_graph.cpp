@@ -8,9 +8,21 @@
 #include "rhi/commands/command_encoder.h"
 #include "rhi/rhi_context.h"
 #include <algorithm>
+#include <random>
 #include <stack>
 
 namespace tundra::renderer::frame_graph {
+
+static math::Vec3 get_random_color() noexcept
+{
+    static std::mt19937 gen { 0 };
+    static std::uniform_real_distribution<f32> dis(0.f, 1.f);
+    return math::Vec3 {
+        dis(gen),
+        dis(gen),
+        dis(gen),
+    };
+}
 
 [[nodiscard]] static u32 map_queue_to_family_index(
     const rhi::QueueFamilyIndices& queues, const QueueType queue) noexcept
@@ -196,7 +208,11 @@ void FrameGraph::execute(rhi::IRHIContext* context) noexcept
 
     // #TODO: Not optimal...
     if (!m_dependency_levels.empty()) {
+        frame_graph::QueueType queue_type = frame_graph::QueueType::Graphics;
         core::Array<rhi::SubmitInfo> submit_infos;
+
+        rhi::CommandEncoder encoder;
+        encoder.begin_command_buffer();
 
         for (const FrameGraph::DependencyLevel& dependency_level : m_dependency_levels) {
             for (const RenderPassId pass_id : dependency_level.passes) {
@@ -213,9 +229,35 @@ void FrameGraph::execute(rhi::IRHIContext* context) noexcept
                     resource->create(context, m_registry);
                 }
 
-                rhi::CommandEncoder encoder;
-                encoder.begin_command_buffer();
-                encoder.begin_region(pass->get_name(), math::Vec4 { 1.f, 1.f, 1.f, 1.f });
+                if (!submit_infos.empty()) {
+                    rhi::SubmitInfo& submit_info = submit_infos.back();
+
+                    if (submit_info.queue_type !=
+                        map_fg_queue_to_rhi_queue(pass->get_queue_type())) {
+                        encoder.end_command_buffer();
+
+                        rhi::SubmitInfo sb;
+                        sb.encoders.push_back(core::move(encoder));
+                        sb.synchronization_stage = map_queue_to_synchronization_stage(
+                            pass->get_queue_type());
+                        sb.queue_type = *map_fg_queue_to_rhi_queue(
+                            pass->get_queue_type());
+
+                        submit_infos.push_back(core::move(sb));
+
+                        encoder = rhi::CommandEncoder {};
+                        encoder.begin_command_buffer();
+                    }
+                }
+
+                queue_type = pass->get_queue_type();
+
+                encoder.begin_region(
+                    pass->get_name(),
+                    math::Vec4 {
+                        get_random_color(),
+                        1.f,
+                    });
 
                 translate_barriers(
                     m_registry,
@@ -234,27 +276,30 @@ void FrameGraph::execute(rhi::IRHIContext* context) noexcept
                     pass_barriers.buffer_barriers.after);
 
                 encoder.end_region();
-                encoder.end_command_buffer();
-
-                if (!submit_infos.empty()) {
-                    rhi::SubmitInfo& submit_info = submit_infos.back();
-
-                    if (submit_info.queue_type ==
-                        map_fg_queue_to_rhi_queue(pass->get_queue_type())) {
-                        submit_info.encoders.push_back(core::move(encoder));
-                        continue;
-                    }
-                }
-
-                rhi::SubmitInfo submit_info;
-                submit_info.encoders.push_back(core::move(encoder));
-                submit_info.synchronization_stage = map_queue_to_synchronization_stage(
-                    pass->get_queue_type());
-                submit_info.queue_type = *map_fg_queue_to_rhi_queue(
-                    pass->get_queue_type());
-
-                submit_infos.push_back(core::move(submit_info));
             }
+        }
+
+        encoder.end_command_buffer();
+        if (!submit_infos.empty()) {
+            rhi::SubmitInfo& submit_info = submit_infos.back();
+
+            if (submit_info.queue_type != map_fg_queue_to_rhi_queue(queue_type)) {
+                rhi::SubmitInfo sb;
+                sb.encoders.push_back(core::move(encoder));
+                sb.synchronization_stage = map_queue_to_synchronization_stage(queue_type);
+                sb.queue_type = *map_fg_queue_to_rhi_queue(queue_type);
+
+                submit_infos.push_back(core::move(sb));
+            } else {
+                submit_info.encoders.push_back(core::move(encoder));
+            }
+        } else {
+            rhi::SubmitInfo sb;
+            sb.encoders.push_back(core::move(encoder));
+            sb.synchronization_stage = map_queue_to_synchronization_stage(queue_type);
+            sb.queue_type = *map_fg_queue_to_rhi_queue(queue_type);
+
+            submit_infos.push_back(core::move(sb));
         }
 
         core::Array<rhi::PresentInfo> present_infos;
@@ -481,7 +526,8 @@ void FrameGraph::build_barriers() noexcept
                                                    ResourceUsage::SHADER_GRAPHICS |
                                                    ResourceUsage::SHADER_COMPUTE |
                                                    ResourceUsage::TRANSFER)),
-                        "`COLOR_ATTACHMENT` can be only used with `COLOR_ATTACHMENT`, "
+                        "`COLOR_ATTACHMENT` can be only used with "
+                        "`COLOR_ATTACHMENT`, "
                         "`SHADER_GRAPHICS`, `SHADER_COMPUTE` and `TRANSFER`.");
                 }
 
@@ -496,7 +542,8 @@ void FrameGraph::build_barriers() noexcept
                                   ResourceUsage::SHADER_COMPUTE |
                                   ResourceUsage::TRANSFER)),
                         "`DEPTH_STENCIL_ATTACHMENT` can be only used with "
-                        "`DEPTH_STENCIL_ATTACHMENT`, `SHADER_GRAPHICS`, `SHADER_COMPUTE` "
+                        "`DEPTH_STENCIL_ATTACHMENT`, `SHADER_GRAPHICS`, "
+                        "`SHADER_COMPUTE` "
                         "and `TRANSFER`.");
                 }
 
