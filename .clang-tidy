@@ -7,4 +7,12 @@ Checks: "*,\
   -modernize-use-trailing-return-type,\
   -modernize-deprecated-headers,\
   -readability-avoid-const-params-in-decls,\
-  -readability-convert-member-functions-to-static"
+  -readability-convert-member-functions-to-static, \
+  -readability-uppercase-literal-suffix, \
+  -readability-redundant-access-specifiers, \
+  -altera-*, \
+  -cppcoreguidelines-pro-bounds-constant-array-index, \
+  -hicpp-uppercase-literal-suffix, \
+  -readability-identifier-length, \
+  -cppcoreguidelines-explicit-virtual-functions, \
+  -readability-function-cognitive-complexity"
