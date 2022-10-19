@@ -94,6 +94,8 @@ void ValidationLayers::destroy_buffer(const BufferHandle handle) noexcept
 TextureHandle ValidationLayers::create_texture(
     const TextureCreateInfo& create_info) noexcept
 {
+    // #TODO: Make sure that `R64_UINT` is used only as UAV, TRANSFER_SOURCE or TRANSFER_DESTINATION
+
     tndr_assert(
         !(intersects(
               get_texture_format_desc(create_info.format).aspect,
