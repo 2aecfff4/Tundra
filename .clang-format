@@ -1,0 +1,81 @@
+Standard: c++17
+TabWidth: 4
+IndentWidth: 4
+UseTab: Never
+
+AllowShortLambdasOnASingleLine: Inline
+ReflowComments: false
+SortIncludes: true
+SortUsingDeclarations: true
+SpaceAfterCStyleCast: false
+SpaceAfterTemplateKeyword: true
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeCtorInitializerColon: true
+SpaceBeforeInheritanceColon: true
+SpaceBeforeParens: ControlStatements
+SpaceBeforeRangeBasedForLoopColon: true
+SpaceInEmptyParentheses: false
+SpacesBeforeTrailingComments: 1
+SpacesInAngles: false
+SpacesInContainerLiterals: true
+SpacesInCStyleCastParentheses: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+PenaltyBreakAssignment: 200
+PenaltyBreakBeforeFirstCallParameter: 1
+PenaltyBreakComment: 300
+PenaltyBreakFirstLessLess: 120
+PenaltyBreakString: 1000
+PenaltyBreakTemplateDeclaration: 10
+PenaltyExcessCharacter: 100
+PenaltyReturnTypeOnItsOwnLine: 200
+PointerAlignment: Left
+ColumnLimit: 90
+AllowAllParametersOfDeclarationOnNextLine: true
+AllowShortBlocksOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+AlwaysBreakTemplateDeclarations: Yes
+BreakConstructorInitializers: BeforeComma
+
+Cpp11BracedListStyle: false
+SpaceBeforeCpp11BracedList: true
+
+BinPackArguments: false
+BinPackParameters: false
+AlignAfterOpenBracket: AlwaysBreak
+
+IndentCaseLabels: true
+
+AlwaysBreakAfterReturnType: None
+IndentWrappedFunctionNames: true
+
+IncludeCategories: 
+  - Regex:           '".*/.*_export.h'
+    Priority:        1
+  - Regex:           'core/core.h'
+    Priority:        2
+  - Regex:           '".*"'
+    Priority:        3
+  - Regex:           '^<.*\.(h)>'
+    Priority:        4
+  - Regex:           '^<.*>'
+    Priority:        5
+
+AccessModifierOffset: -4
+
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterFunction: true
+  
+ForEachMacros: ['tndr_defer']
+
+# Clang-format 13
+LambdaBodyIndentation: Signature
+# AlignArrayOfStructures: Left
+BreakBeforeConceptDeclarations: true
+EmptyLineBeforeAccessModifier: Always
+IndentRequires: false
+IndentAccessModifiers: false

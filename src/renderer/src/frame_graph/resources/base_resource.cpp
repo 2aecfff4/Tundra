@@ -1,0 +1,1 @@
+#include "renderer/frame_graph/resources/base_resource.h"

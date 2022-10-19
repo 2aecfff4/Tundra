@@ -1,0 +1,10 @@
+add_subdirectory(core)
+add_subdirectory(globals)
+add_subdirectory(math)
+add_subdirectory(platform)
+add_subdirectory(renderer)
+add_subdirectory(rhi)
+
+if(TUNDRA_ENABLE_VULKAN_SUPPORT)
+    add_subdirectory(vulkan_rhi)
+endif(TUNDRA_ENABLE_VULKAN_SUPPORT)

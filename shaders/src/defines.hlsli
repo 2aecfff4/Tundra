@@ -1,0 +1,12 @@
+#ifndef TNDR_SHADERS_DEFINES_H
+#define TNDR_SHADERS_DEFINES_H
+
+#define UINT_MAX 4294967295
+#define INVALID_HANDLE UINT_MAX
+#define INVALID_TEXTURE_HANDLE UINT_MAX
+
+#define BRANCH [branch]
+#define LOOP [loop]
+#define UNROLL [unroll]
+
+#endif // TNDR_SHADERS_DEFINES_H

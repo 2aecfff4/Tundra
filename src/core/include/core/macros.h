@@ -1,0 +1,30 @@
+#pragma once
+#include "core/build.h"
+
+#if TNDR_COMPILER_GCC || TNDR_COMPILER_CLANG
+#define TNDR_RESTRICT __restrict__
+#elif TNDR_COMPILER_MSVC
+#define TNDR_RESTRICT __restrict
+#else
+#define TNDR_RESTRICT
+#endif
+
+#define TNDR_STRINGIFY(X) #X
+#define TNDR_APPEND_INDIRECT(X, Y) X##Y
+#define TNDR_APPEND(X, Y) TNDR_APPEND_INDIRECT(X, Y)
+
+#define TNDR_IF_IMPL_0(X)
+#define TNDR_IF_IMPL_1(X) X
+#define TNDR_IF_IMPL(X) TNDR_APPEND(TNDR_IF_IMPL_, X)
+#define TNDR_IF(X, Y) TNDR_IF_IMPL(X) \
+(Y)
+
+#if TNDR_COMPILER_MSVC
+#define TNDR_PRETTY_FUNCTION __FUNCTION__
+#elif TNDR_COMPILER_GCC
+#define TNDR_PRETTY_FUNCTION __PRETTY_FUNCTION__
+#elif TNDR_COMPILER_CLANG
+#define TNDR_PRETTY_FUNCTION __PRETTY_FUNCTION__
+#else
+#define TNDR_PRETTY_FUNCTION "Unsupported compiler!"
+#endif

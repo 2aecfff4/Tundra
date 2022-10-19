@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+
+  <Type Name="tundra::rhi::Handle&lt;*&gt;">
+    <DisplayString>{{ generation={m_id &amp; 0x000000000000FFFF} index={(m_id &amp; 0x00FFFFFFFFFF0000) >> 16} }}</DisplayString>
+    <Expand>
+      <Item Name="handle_type" ExcludeView="simple">(HandleType)((m_id &amp; 0xFF00000000000000) >> 56)</Item>
+      <Item Name="generation" ExcludeView="simple">m_id &amp; 0x000000000000FFFF</Item>
+      <Item Name="index" ExcludeView="simple">(m_id &amp; 0x00FFFFFFFFFF0000) >> 16</Item>
+    </Expand>
+  </Type>
+</AutoVisualizer>

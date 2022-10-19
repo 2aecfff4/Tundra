@@ -1,0 +1,10 @@
+Checks: "*,\
+  -fuchsia-*,\
+  -google-*,\
+  -zircon-*,\
+  -abseil-*,\
+  -llvm*,\
+  -modernize-use-trailing-return-type,\
+  -modernize-deprecated-headers,\
+  -readability-avoid-const-params-in-decls,\
+  -readability-convert-member-functions-to-static"
