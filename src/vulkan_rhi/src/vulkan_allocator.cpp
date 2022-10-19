@@ -39,62 +39,63 @@ namespace tundra::vulkan_rhi {
 }
 
 VulkanAllocator::VulkanAllocator(core::SharedPtr<VulkanRawDevice> device) noexcept
-    : m_device(device)
+    : m_device(core::move(device))
+    , m_allocator(VK_NULL_HANDLE)
 {
     TNDR_PROFILER_TRACE("VulkanAllocator::VulkanAllocator");
 
     const VmaVulkanFunctions vma_vulkan_functions {
-        .vkGetPhysicalDeviceProperties = device->get_instance()
+        .vkGetPhysicalDeviceProperties = m_device->get_instance()
                                              ->get_instance()
                                              .get_table()
                                              .get_physical_device_properties,
-        .vkGetPhysicalDeviceMemoryProperties = device->get_instance()
+        .vkGetPhysicalDeviceMemoryProperties = m_device->get_instance()
                                                    ->get_instance()
                                                    .get_table()
                                                    .get_physical_device_memory_properties,
-        .vkAllocateMemory = device->get_device().get_table().allocate_memory,
-        .vkFreeMemory = device->get_device().get_table().free_memory,
-        .vkMapMemory = device->get_device().get_table().map_memory,
-        .vkUnmapMemory = device->get_device().get_table().unmap_memory,
+        .vkAllocateMemory = m_device->get_device().get_table().allocate_memory,
+        .vkFreeMemory = m_device->get_device().get_table().free_memory,
+        .vkMapMemory = m_device->get_device().get_table().map_memory,
+        .vkUnmapMemory = m_device->get_device().get_table().unmap_memory,
         .vkFlushMappedMemoryRanges =
-            device->get_device().get_table().flush_mapped_memory_ranges,
+            m_device->get_device().get_table().flush_mapped_memory_ranges,
         .vkInvalidateMappedMemoryRanges =
-            device->get_device().get_table().invalidate_mapped_memory_ranges,
-        .vkBindBufferMemory = device->get_device().get_table().bind_buffer_memory,
-        .vkBindImageMemory = device->get_device().get_table().bind_image_memory,
+            m_device->get_device().get_table().invalidate_mapped_memory_ranges,
+        .vkBindBufferMemory = m_device->get_device().get_table().bind_buffer_memory,
+        .vkBindImageMemory = m_device->get_device().get_table().bind_image_memory,
         .vkGetBufferMemoryRequirements =
-            device->get_device().get_table().get_buffer_memory_requirements,
+            m_device->get_device().get_table().get_buffer_memory_requirements,
         .vkGetImageMemoryRequirements =
-            device->get_device().get_table().get_image_memory_requirements,
-        .vkCreateBuffer = device->get_device().get_table().create_buffer,
-        .vkDestroyBuffer = device->get_device().get_table().destroy_buffer,
-        .vkCreateImage = device->get_device().get_table().create_image,
-        .vkDestroyImage = device->get_device().get_table().destroy_image,
-        .vkCmdCopyBuffer = device->get_device().get_table().cmd_copy_buffer,
+            m_device->get_device().get_table().get_image_memory_requirements,
+        .vkCreateBuffer = m_device->get_device().get_table().create_buffer,
+        .vkDestroyBuffer = m_device->get_device().get_table().destroy_buffer,
+        .vkCreateImage = m_device->get_device().get_table().create_image,
+        .vkDestroyImage = m_device->get_device().get_table().destroy_image,
+        .vkCmdCopyBuffer = m_device->get_device().get_table().cmd_copy_buffer,
         .vkGetBufferMemoryRequirements2KHR =
-            device->get_device().get_table().get_buffer_memory_requirements2,
+            m_device->get_device().get_table().get_buffer_memory_requirements2,
         .vkGetImageMemoryRequirements2KHR =
-            device->get_device().get_table().get_image_memory_requirements2,
-        .vkBindBufferMemory2KHR = device->get_device().get_table().bind_buffer_memory2,
-        .vkBindImageMemory2KHR = device->get_device().get_table().bind_image_memory2,
+            m_device->get_device().get_table().get_image_memory_requirements2,
+        .vkBindBufferMemory2KHR = m_device->get_device().get_table().bind_buffer_memory2,
+        .vkBindImageMemory2KHR = m_device->get_device().get_table().bind_image_memory2,
         .vkGetPhysicalDeviceMemoryProperties2KHR =
-            device->get_instance()
+            m_device->get_instance()
                 ->get_instance()
                 .get_table()
                 .get_physical_device_memory_properties2,
         .vkGetDeviceBufferMemoryRequirements =
-            device->get_device().get_table().get_device_buffer_memory_requirements,
+            m_device->get_device().get_table().get_device_buffer_memory_requirements,
         .vkGetDeviceImageMemoryRequirements =
-            device->get_device().get_table().get_device_image_memory_requirements,
+            m_device->get_device().get_table().get_device_image_memory_requirements,
     };
 
     const VmaAllocatorCreateInfo allocator_create_info {
-        .physicalDevice = device->get_physical_device(),
-        .device = device->get_device().get_handle(),
+        .physicalDevice = m_device->get_physical_device(),
+        .device = m_device->get_device().get_handle(),
         .pAllocationCallbacks = nullptr,
         .pVulkanFunctions = &vma_vulkan_functions,
-        .instance = device->get_instance()->get_instance().get_handle(),
-        .vulkanApiVersion = VK_API_VERSION_1_2,
+        .instance = m_device->get_instance()->get_instance().get_handle(),
+        .vulkanApiVersion = VK_API_VERSION_1_3,
     };
 
     const VkResult result = vmaCreateAllocator(&allocator_create_info, &m_allocator);

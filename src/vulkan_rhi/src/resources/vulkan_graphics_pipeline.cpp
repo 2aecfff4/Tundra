@@ -14,7 +14,7 @@ VulkanGraphicsPipeline::VulkanGraphicsPipeline(
     core::SharedPtr<VulkanRawDevice> raw_device,
     const Managers& managers,
     const rhi::GraphicsPipelineCreateInfo& create_info) noexcept
-    : m_raw_device(raw_device)
+    : m_raw_device(core::move(raw_device))
 {
     TNDR_PROFILER_TRACE("VulkanGraphicsPipeline::VulkanGraphicsPipeline");
 
