@@ -25,7 +25,6 @@ out/
 
 assets/
 Notes.md
-docs/
 .vscode/
 r&d/
 CMakeSettings.json

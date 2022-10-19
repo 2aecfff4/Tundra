@@ -1,3 +1,6 @@
+
+![Screenshot](/repository/docs/screenshot.png?raw=true "Screenshot")
+
 # References
 - Optimizing the Graphics Pipeline with Compute
     https://frostbite-wp-prd.s3.amazonaws.com/wp-content/uploads/2016/03/29204330/GDC_2016_Compute.pdf
