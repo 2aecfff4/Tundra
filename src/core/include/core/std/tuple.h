@@ -362,16 +362,14 @@ template <typename... LhsTypes, typename... RhsTypes>
     constexpr usize TUPLE_SIZE = sizeof...(LhsTypes);
 
     return [&]<typename... Lhs, typename... Rhs, usize... I>(
-        const Tuple<Lhs...>& lhs,
-        const Tuple<Rhs...>& rhs,
-        [[maybe_unused]] std::index_sequence<I...>)
-    {
+               const Tuple<Lhs...>& lhs,
+               const Tuple<Rhs...>& rhs,
+               [[maybe_unused]] std::index_sequence<I...>) {
         return (
             (static_cast<const tuple_impl::TupleElement<I, Lhs>&>(lhs) ==
              static_cast<const tuple_impl::TupleElement<I, Rhs>&>(rhs)) &&
             ...);
-    }
-    (lhs, rhs, std::make_index_sequence<TUPLE_SIZE> {});
+    }(lhs, rhs, std::make_index_sequence<TUPLE_SIZE> {});
 }
 
 template <typename... LhsTypes, typename... RhsTypes>
@@ -391,16 +389,14 @@ template <typename... LhsTypes, typename... RhsTypes>
     constexpr usize TUPLE_SIZE = sizeof...(LhsTypes);
 
     return [&]<typename... Lhs, typename... Rhs, usize... I>(
-        const Tuple<Lhs...>& lhs,
-        const Tuple<Rhs...>& rhs,
-        [[maybe_unused]] std::index_sequence<I...>)
-    {
+               const Tuple<Lhs...>& lhs,
+               const Tuple<Rhs...>& rhs,
+               [[maybe_unused]] std::index_sequence<I...>) {
         return (
             (static_cast<const tuple_impl::TupleElement<I, Lhs>&>(lhs) <
              static_cast<const tuple_impl::TupleElement<I, Rhs>&>(rhs)) &&
             ...);
-    }
-    (lhs, rhs, std::make_index_sequence<TUPLE_SIZE> {});
+    }(lhs, rhs, std::make_index_sequence<TUPLE_SIZE> {});
 }
 
 template <typename... LhsTypes, typename... RhsTypes>
@@ -420,16 +416,14 @@ template <typename... LhsTypes, typename... RhsTypes>
     constexpr usize TUPLE_SIZE = sizeof...(LhsTypes);
 
     return [&]<typename... Lhs, typename... Rhs, usize... I>(
-        const Tuple<Lhs...>& lhs,
-        const Tuple<Rhs...>& rhs,
-        [[maybe_unused]] std::index_sequence<I...>)
-    {
+               const Tuple<Lhs...>& lhs,
+               const Tuple<Rhs...>& rhs,
+               [[maybe_unused]] std::index_sequence<I...>) {
         return (
             (static_cast<const tuple_impl::TupleElement<I, Lhs>&>(lhs) >
              static_cast<const tuple_impl::TupleElement<I, Rhs>&>(rhs)) &&
             ...);
-    }
-    (lhs, rhs, std::make_index_sequence<TUPLE_SIZE> {});
+    }(lhs, rhs, std::make_index_sequence<TUPLE_SIZE> {});
 }
 
 template <typename... LhsTypes, typename... RhsTypes>
@@ -439,47 +433,47 @@ template <typename... LhsTypes, typename... RhsTypes>
     return !(lhs > rhs);
 }
 
-template <usize I, typename Tuple>
-[[nodiscard]] constexpr decltype(auto) get(Tuple&& tuple) noexcept
+template <usize I, typename... Ts>
+[[nodiscard]] constexpr decltype(auto) get(Tuple<Ts...>&& tuple) noexcept
 {
     return core::move(tuple.template get<I>());
 }
 
-template <usize I, typename Tuple>
-[[nodiscard]] constexpr decltype(auto) get(Tuple& tuple) noexcept
+template <usize I, typename... Ts>
+[[nodiscard]] constexpr decltype(auto) get(Tuple<Ts...>& tuple) noexcept
 {
     return tuple.template get<I>();
 }
 
-template <usize I, typename Tuple>
-[[nodiscard]] constexpr decltype(auto) get(const Tuple& tuple) noexcept
+template <usize I, typename... Ts>
+[[nodiscard]] constexpr decltype(auto) get(const Tuple<Ts...>& tuple) noexcept
 {
     return tuple.template get<I>();
 }
 
 /// This overload can be used only when there are no duplicate types in a tuple.
-template <typename T, typename Tuple>
-[[nodiscard]] constexpr decltype(auto) get(Tuple&& tuple) //
-    noexcept                                              //
-    requires(!Tuple::HAS_DUPLICATES)                      //
+template <typename T, typename... Ts>
+[[nodiscard]] constexpr decltype(auto) get(Tuple<Ts...>&& tuple) //
+    noexcept                                                     //
+    requires(!Tuple<Ts...>::HAS_DUPLICATES)                      //
 {
     return core::move(tuple.template get<T>());
 }
 
 /// This overload can be used only when there are no duplicate types in a tuple.
-template <typename T, typename Tuple>
-[[nodiscard]] constexpr decltype(auto) get(Tuple& tuple) //
-    noexcept                                             //
-    requires(!Tuple::HAS_DUPLICATES)                     //
+template <typename T, typename... Ts>
+[[nodiscard]] constexpr decltype(auto) get(Tuple<Ts...>& tuple) //
+    noexcept                                                    //
+    requires(!Tuple<Ts...>::HAS_DUPLICATES)                     //
 {
     return tuple.template get<T>();
 }
 
 /// This overload can be used only when there are no duplicate types in a tuple.
-template <typename T, typename Tuple>
-[[nodiscard]] constexpr decltype(auto) get(const Tuple& tuple) //
-    noexcept                                                   //
-    requires(!Tuple::HAS_DUPLICATES)                           //
+template <typename T, typename... Ts>
+[[nodiscard]] constexpr decltype(auto) get(const Tuple<Ts...>& tuple) //
+    noexcept                                                          //
+    requires(!Tuple<Ts...>::HAS_DUPLICATES)                           //
 {
     return tuple.template get<T>();
 }
@@ -542,8 +536,7 @@ struct tuple_size;
 
 template <typename... Ts>
 struct tuple_size<tundra::core::Tuple<Ts...>>
-    : std::integral_constant<usize, sizeof...(Ts)> {
-};
+    : std::integral_constant<usize, sizeof...(Ts)> {};
 
 template <size_t I, typename>
 struct tuple_element;
