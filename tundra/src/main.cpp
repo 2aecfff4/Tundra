@@ -1,6 +1,5 @@
 #include "app.h"
 #include "core/module/module_manager.h"
-#include "core/profiler.h"
 #include "core/std/containers/hash_map.h"
 #include "core/std/defer.h"
 #include "core/std/unique_ptr.h"
@@ -9,6 +8,7 @@
 #include "math/transform.h"
 #include "math/vector3.h"
 #include "meshlet_mesh.h"
+#include "pipelines.h"
 #include "renderer/frame_graph/frame_graph.h"
 #include "renderer/renderer.h"
 #include "rhi/config.h"
@@ -30,7 +30,7 @@ namespace tundra {
 ///
 class MeshletApp : public App {
 private:
-    static constexpr usize NUM_INSTANCES = 1;
+    static constexpr usize NUM_INSTANCES = 16;
 
 private:
     renderer::frame_graph::FrameGraph m_frame_graph;
@@ -49,16 +49,12 @@ private:
     core::HashMap<core::String, rhi::ComputePipelineHandle> m_compute_pipelines;
     core::HashMap<core::String, rhi::GraphicsPipelineHandle> m_graphics_pipelines;
 
-    static inline const core::String ASSET_PATH =
-        "H:/Programming/Projects/Tundra2/assets/";
-
 private:
     u64 m_frame_index = 0;
 
 public:
     MeshletApp() noexcept
-        : App()
-        , m_frame_graph(globals::g_rhi_context)
+        : m_frame_graph(globals::g_rhi_context)
     {
         m_mesh_descriptors_buffer = globals::g_rhi_context->create_buffer(
             rhi::BufferCreateInfo {
@@ -83,7 +79,7 @@ public:
                 .usage = rhi::BufferUsageFlags::SRV,
                 .memory_type = rhi::MemoryType::Dynamic,
                 .size = NUM_INSTANCES * sizeof(shader::MeshInstance),
-                .name = "mesh_instances",
+                .name = fmt::format("mesh_instances: {}", i),
             });
 
             core::Array<shader::MeshInstance> mesh_instances(
@@ -102,16 +98,16 @@ public:
                 });
         }
 
-        std::mt19937 gen { 0 };
+        std::mt19937 gen { 0 }; // NOLINT(cert-msc32-c, cert-msc51-cpp)
         std::uniform_real_distribution<f32> dist { 0, 1 };
         const f32 scene_radius = 10.f;
         for (usize i = 0; i < NUM_INSTANCES; ++i) {
             math::Transform transform = math::Transform::IDENTITY;
-            // transform.position = math::Vec3 {
-            //     dist(gen) * scene_radius * 2 - scene_radius,
-            //     dist(gen) * scene_radius * 2 - scene_radius,
-            //     dist(gen) * scene_radius * 2 - scene_radius,
-            // };
+            transform.position = math::Vec3 {
+                dist(gen) * scene_radius * 2 - scene_radius,
+                dist(gen) * scene_radius * 2 - scene_radius,
+                dist(gen) * scene_radius * 2 - scene_radius,
+            };
             transform.scale = 1.f;
 
             m_instances_transforms.push_back(transform);
@@ -124,7 +120,7 @@ public:
         this->create_pipelines();
     }
 
-    ~MeshletApp()
+    ~MeshletApp() override
     {
         for (const auto& [_, pipeline] : m_compute_pipelines) {
             globals::g_rhi_context->destroy_compute_pipeline(pipeline);
@@ -138,14 +134,8 @@ public:
 private:
     void upload_mesh() noexcept
     {
-        // MeshletMesh::import(
-        //     ASSET_PATH + "level_test.glb", ASSET_PATH + "level_test.meshlet_mesh");
-        // MeshletMesh meshlet_mesh = MeshletMesh::load(
-        //     ASSET_PATH + "level_test.meshlet_mesh");
-
-        MeshletMesh::import(
-            ASSET_PATH + "monkey.glb", ASSET_PATH + "monkey.meshlet_mesh");
-        MeshletMesh meshlet_mesh = MeshletMesh::load(ASSET_PATH + "monkey.meshlet_mesh");
+        MeshletMesh::import("assets/monkey.glb", "assets/monkey.meshlet_mesh");
+        MeshletMesh meshlet_mesh = MeshletMesh::load("assets/monkey.meshlet_mesh");
 
         core::Array<u32> meshlet_triangles(meshlet_mesh.meshlet_triangles.size());
         for (usize i = 0; i < meshlet_triangles.size(); ++i) {
@@ -442,6 +432,7 @@ protected:
         const f32 z_near = 0.01f;
 
         const renderer::RenderOutput render_output = renderer::render(
+            renderer::RendererType::Software,
             m_frame_graph,
             renderer::RenderInput {
                 .world_to_view = m_camera.view,
