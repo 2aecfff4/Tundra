@@ -22,5 +22,9 @@ Checks: "*,\
   -hicpp-use-auto"
 
 CheckOptions:
-  -key: hicpp-signed-bitwise.IgnorePositiveIntegerLiterals
-  -value: true
+- key: hicpp-signed-bitwise.IgnorePositiveIntegerLiterals
+  value: true
+- key: readability-magic-numbers.IgnorePowersOf2IntegerValues
+  value: true
+- key: cppcoreguidelines-avoid-magic-numbers.IgnorePowersOf2IntegerValues
+  value: true
