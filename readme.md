@@ -1,5 +1,5 @@
 
-![Screenshot](/repository/docs/screenshot.png?raw=true "Screenshot")
+![Screenshot](/docs/screenshot.png?raw=true "Screenshot")
 
 # References
 - Optimizing the Graphics Pipeline with Compute
