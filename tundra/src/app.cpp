@@ -145,27 +145,33 @@ void App::key_callback(GLFWwindow* window, int key, int scancode, int action, in
     if ((action == GLFW_PRESS) || (action == GLFW_REPEAT)) {
         switch (key) {
             case GLFW_KEY_W: {
-                app->m_camera_transform.position.y += speed;
+                app->m_camera_transform.position += math::Transform::FORWARD *
+                                                    math::Vec3 { speed };
                 break;
             }
             case GLFW_KEY_S: {
-                app->m_camera_transform.position.y -= speed;
+                app->m_camera_transform.position += math::Transform::FORWARD *
+                                                    math::Vec3 { -speed };
                 break;
             }
             case GLFW_KEY_A: {
-                app->m_camera_transform.position.x -= speed;
+                app->m_camera_transform.position += math::Transform::RIGHT *
+                                                    math::Vec3 { -speed };
                 break;
             }
             case GLFW_KEY_D: {
-                app->m_camera_transform.position.x += speed;
+                app->m_camera_transform.position += math::Transform::RIGHT *
+                                                    math::Vec3 { speed };
                 break;
             }
             case GLFW_KEY_Q: {
-                app->m_camera_transform.position.z -= speed;
+                app->m_camera_transform.position += math::Transform::UP *
+                                                    math::Vec3 { -speed };
                 break;
             }
             case GLFW_KEY_E: {
-                app->m_camera_transform.position.z += speed;
+                app->m_camera_transform.position += math::Transform::UP *
+                                                    math::Vec3 { speed };
                 break;
             }
             default: {
