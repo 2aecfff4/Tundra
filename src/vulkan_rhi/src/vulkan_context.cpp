@@ -83,6 +83,13 @@ void VulkanContext::create_device() noexcept
             },
     };
 
+    VkPhysicalDeviceShaderImageAtomicInt64FeaturesEXT
+        physical_device_shader_image_atomic_int64_features {
+            .sType =
+                VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_IMAGE_ATOMIC_INT64_FEATURES_EXT,
+            .shaderImageInt64Atomics = true,
+        };
+
     VkPhysicalDeviceVulkan12Features physical_device_vulkan12_features {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
         .drawIndirectCount = true,
@@ -94,7 +101,6 @@ void VulkanContext::create_device() noexcept
         .descriptorBindingStorageBufferUpdateAfterBind = true,
         .descriptorBindingPartiallyBound = true,
         .runtimeDescriptorArray = true,
-        .imagelessFramebuffer = true,
         .timelineSemaphore = true,
     };
 
@@ -106,6 +112,7 @@ void VulkanContext::create_device() noexcept
 
     core::Array<const char*> device_extensions_names {
         loader::khr::Swapchain::name(),
+        VK_EXT_SHADER_IMAGE_ATOMIC_INT64_EXTENSION_NAME,
     };
 
     VkDeviceCreateInfo device_create_info {
@@ -119,6 +126,7 @@ void VulkanContext::create_device() noexcept
     helpers::chain_structs(
         device_create_info,
         physical_device_features2,
+        physical_device_shader_image_atomic_int64_features,
         physical_device_vulkan12_features,
         physical_device_vulkan13_features);
 
@@ -238,9 +246,9 @@ core::Array<VulkanContext::Device> VulkanContext::enumerate_devices() noexcept
         const bool supports_swapchain = std::any_of(
             device_extensions.begin(),
             device_extensions.end(),
-            [](const VkExtensionProperties& extenstion) {
+            [](const VkExtensionProperties& extension) {
                 return std::strcmp(
-                           extenstion.extensionName, loader::khr::Swapchain::name()) == 0;
+                           extension.extensionName, loader::khr::Swapchain::name()) == 0;
             });
 
         if (!supports_swapchain) {
@@ -257,10 +265,6 @@ core::Array<VulkanContext::Device> VulkanContext::enumerate_devices() noexcept
                 .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES,
             };
 
-            VkPhysicalDeviceImagelessFramebufferFeatures imageless_framebuffer_features {
-                .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGELESS_FRAMEBUFFER_FEATURES,
-            };
-
             VkPhysicalDeviceVulkan13Features physical_device_vulkan13_features {
                 .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
             };
@@ -269,9 +273,15 @@ core::Array<VulkanContext::Device> VulkanContext::enumerate_devices() noexcept
                 .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
             };
 
+            VkPhysicalDeviceShaderImageAtomicInt64FeaturesEXT
+                physical_device_shader_image_atomic_int64_features {
+                    .sType =
+                        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_IMAGE_ATOMIC_INT64_FEATURES_EXT,
+                };
+
             helpers::chain_structs(
                 physical_device_features,
-                imageless_framebuffer_features,
+                physical_device_shader_image_atomic_int64_features,
                 descriptor_indexing_features,
                 physical_device_vulkan13_features);
 
@@ -292,8 +302,9 @@ core::Array<VulkanContext::Device> VulkanContext::enumerate_devices() noexcept
                      .descriptorBindingSampledImageUpdateAfterBind == false) ||
                 (descriptor_indexing_features
                      .descriptorBindingStorageImageUpdateAfterBind == false) ||
-                (imageless_framebuffer_features.imagelessFramebuffer == false) ||
-                (physical_device_vulkan13_features.dynamicRendering == false)) {
+                (physical_device_vulkan13_features.dynamicRendering == false) ||
+                (physical_device_shader_image_atomic_int64_features
+                     .shaderImageInt64Atomics == false)) {
                 tndr_info(
                     "Device {} does not support necessary features.",
                     physical_device_properties.properties.deviceName);
