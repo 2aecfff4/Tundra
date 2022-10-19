@@ -332,7 +332,8 @@ private:
             return buffer;
         };
 
-        const auto create_compute_pipeline = [&](const core::String& path) {
+        const auto create_compute_pipeline = [&](const core::String& path,
+                                                 const core::String& name) {
             const core::Array<char> shader_buffer = read_file(path);
             const rhi::ShaderHandle shader = globals::g_rhi_context->create_shader(
                 rhi::ShaderCreateInfo {
@@ -346,16 +347,17 @@ private:
             return globals::g_rhi_context->create_compute_pipeline(
                 rhi::ComputePipelineCreateInfo {
                     .compute_shader = shader,
-                    .name = pipelines::INSTANCE_CULLING_AND_LOD_PIPELINE_NAME,
+                    .name = name,
                 });
         };
 
         // instance_culling_and_lod
         m_compute_pipelines.insert({
-            pipelines::MESHLET_CULLING_NAME,
+            pipelines::INSTANCE_CULLING_AND_LOD_PIPELINE_NAME,
             create_compute_pipeline(
                 ASSET_PATH + "shaders/visibility_buffer/culling/"
-                             "instance_culling_and_lod.comp.hlsl.spv"),
+                             "instance_culling_and_lod.comp.hlsl.spv",
+                pipelines::INSTANCE_CULLING_AND_LOD_PIPELINE_NAME),
         });
 
         // meshlet_culling
@@ -363,7 +365,8 @@ private:
             pipelines::MESHLET_CULLING_NAME,
             create_compute_pipeline(
                 ASSET_PATH + "shaders/visibility_buffer/culling/"
-                             "meshlet_culling.comp.hlsl.spv"),
+                             "meshlet_culling.comp.hlsl.spv",
+                pipelines::MESHLET_CULLING_NAME),
         });
 
         // clear_index_buffer_generator_dispatch_args
@@ -371,7 +374,8 @@ private:
             pipelines::CLEAR_INDEX_BUFFER_GENERATOR_DISPATCH_ARGS_NAME,
             create_compute_pipeline(
                 ASSET_PATH + "shaders/visibility_buffer/culling/"
-                             "clear_index_buffer_generator_dispatch_args.comp.hlsl.spv"),
+                             "clear_index_buffer_generator_dispatch_args.comp.hlsl.spv",
+                pipelines::CLEAR_INDEX_BUFFER_GENERATOR_DISPATCH_ARGS_NAME),
         });
 
         // generate_index_buffer_generator_dispatch_args
@@ -379,8 +383,9 @@ private:
             pipelines::GENERATE_INDEX_BUFFER_GENERATOR_DISPATCH_ARGS_NAME,
             create_compute_pipeline(
                 ASSET_PATH +
-                "shaders/visibility_buffer/culling/"
-                "generate_index_buffer_generator_dispatch_args.comp.hlsl.spv"),
+                    "shaders/visibility_buffer/culling/"
+                    "generate_index_buffer_generator_dispatch_args.comp.hlsl.spv",
+                pipelines::GENERATE_INDEX_BUFFER_GENERATOR_DISPATCH_ARGS_NAME),
         });
 
         // index_buffer_generator
@@ -388,7 +393,17 @@ private:
             pipelines::INDEX_BUFFER_GENERATOR_NAME,
             create_compute_pipeline(
                 ASSET_PATH + "shaders/visibility_buffer/culling/"
-                             "index_buffer_generator.comp.hlsl.spv"),
+                             "index_buffer_generator.comp.hlsl.spv",
+                pipelines::INDEX_BUFFER_GENERATOR_NAME),
+        });
+
+        // gpu_rasterize_init
+        m_compute_pipelines.insert({
+            pipelines::GPU_RASTERIZE_INIT_NAME,
+            create_compute_pipeline(
+                ASSET_PATH + "shaders/visibility_buffer/passes/"
+                             "gpu_rasterize_init.comp.hlsl.spv",
+                pipelines::GPU_RASTERIZE_INIT_NAME),
         });
 
         // gpu_rasterize
@@ -396,7 +411,8 @@ private:
             pipelines::GPU_RASTERIZE_PASS_NAME,
             create_compute_pipeline(
                 ASSET_PATH + "shaders/visibility_buffer/passes/"
-                             "gpu_rasterize.comp.hlsl.spv"),
+                             "gpu_rasterize.comp.hlsl.spv",
+                pipelines::GPU_RASTERIZE_PASS_NAME),
         });
 
         // gpu_rasterize_debug
@@ -404,7 +420,8 @@ private:
             pipelines::GPU_RASTERIZE_DEBUG_PASS_NAME,
             create_compute_pipeline(
                 ASSET_PATH + "shaders/visibility_buffer/passes/"
-                             "gpu_rasterize_debug.comp.hlsl.spv"),
+                             "gpu_rasterize_debug.comp.hlsl.spv",
+                pipelines::GPU_RASTERIZE_DEBUG_PASS_NAME),
         });
 
         // visibility_buffer_pass
