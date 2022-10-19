@@ -3,7 +3,7 @@
 #include "math/vector4.h"
 #include "renderer/config.h"
 #include "renderer/frame_graph/frame_graph.h"
-#include "renderer/renderer.h"
+#include "renderer/render_input_output.h"
 #include <array>
 
 namespace tundra::renderer::common::culling {

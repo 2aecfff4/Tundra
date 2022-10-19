@@ -1,4 +1,6 @@
 #include "renderer/common/culling/instance_culling_and_lod.h"
+#include "pipelines.h"
+#include "renderer/helpers.h"
 #include "rhi/commands/dispatch_indirect.h"
 #include "rhi/rhi_context.h"
 #include <array>
@@ -9,18 +11,18 @@ namespace ubo {
 
 ///
 struct InstanceCullingUBO {
-    std::array<math::Vec4, 6> frustum_planes;
-    u32 instance_count;
+    std::array<math::Vec4, config::NUM_PLANES> frustum_planes = {};
+    u32 instance_count = 0;
 
     struct {
-        u32 mesh_descriptors_srv;
-        u32 mesh_instances_srv;
-        u32 mesh_instance_transforms_srv;
+        u32 mesh_descriptors_srv = config::INVALID_SHADER_HANDLE;
+        u32 mesh_instances_srv = config::INVALID_SHADER_HANDLE;
+        u32 mesh_instance_transforms_srv = config::INVALID_SHADER_HANDLE;
     } in_;
 
     struct {
-        u32 visible_mesh_instances_uav;
-        u32 meshlet_culling_dispatch_args_uav;
+        u32 visible_mesh_instances_uav = config::INVALID_SHADER_HANDLE;
+        u32 meshlet_culling_dispatch_args_uav = config::INVALID_SHADER_HANDLE;
     } out_;
 };
 
@@ -120,8 +122,8 @@ InstanceCullingOutput instance_culling_and_lod(
 
             encoder.push_constants(ubo_buffer, data.ubo_buffer_offset);
             encoder.dispatch(
-                get_pipeline(
-                    pipelines::INSTANCE_CULLING_AND_LOD_PIPELINE_NAME,
+                helpers::get_pipeline(
+                    pipelines::common::culling::INSTANCE_CULLING_AND_LOD_PIPELINE_NAME,
                     input.compute_pipelines),
                 rhi::CommandEncoder::get_group_count(input.instance_count, 128),
                 1,

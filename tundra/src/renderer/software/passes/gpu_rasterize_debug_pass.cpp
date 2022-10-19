@@ -1,4 +1,7 @@
-#include "renderer/passes/gpu_rasterize_debug_pass.h"
+#include "renderer/software/passes/gpu_rasterize_debug_pass.h"
+#include "pipelines.h"
+#include "renderer/config.h"
+#include "renderer/helpers.h"
 #include "rhi/commands/command_encoder.h"
 #include "rhi/rhi_context.h"
 
@@ -8,9 +11,9 @@ namespace ubo {
 
 ///
 struct GpuRasterizeDebugUBO {
-    math::UVec2 size;
-    u32 input_srv;
-    u32 output_uav;
+    math::UVec2 size = math::UVec2 {};
+    u32 input_srv = config::INVALID_SHADER_HANDLE;
+    u32 output_uav = config::INVALID_SHADER_HANDLE;
 };
 
 } // namespace ubo
@@ -89,8 +92,9 @@ GpuRasterizeDebugOutput gpu_rasterize_debug_pass(
 
             encoder.push_constants(ubo_buffer, data.ubo_buffer_offset);
             encoder.dispatch(
-                get_pipeline(
-                    pipelines::GPU_RASTERIZE_DEBUG_PASS_NAME, input.compute_pipelines),
+                helpers::get_pipeline(
+                    pipelines::software::passes::GPU_RASTERIZE_DEBUG_PASS_NAME,
+                    input.compute_pipelines),
                 rhi::CommandEncoder::get_group_count(input.view_size.x, 16),
                 rhi::CommandEncoder::get_group_count(input.view_size.x, 16),
                 1);

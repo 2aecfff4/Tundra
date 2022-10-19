@@ -1,5 +1,6 @@
 #include "renderer/common/culling/meshlet_culling.h"
-#include "rhi/commands/dispatch_indirect.h"
+#include "pipelines.h"
+#include "renderer/helpers.h"
 #include "rhi/rhi_context.h"
 
 namespace tundra::renderer::common::culling {
@@ -8,23 +9,23 @@ namespace ubo {
 
 ///
 struct MeshletCullingUBO {
-    math::Mat4 projection;
-    math::Mat4 world_to_view;
-    std::array<math::Vec4, 6> frustum_planes;
-    float z_near;
-    u32 max_meshlet_count;
+    math::Mat4 projection = math::Mat4 {};
+    math::Mat4 world_to_view = math::Mat4 {};
+    std::array<math::Vec4, config::NUM_PLANES> frustum_planes = {};
+    float z_near = 0;
+    u32 max_meshlet_count = 0;
 
     struct {
-        u32 visible_mesh_instances_srv;
-        u32 mesh_descriptors_srv;
-        u32 mesh_instance_transforms_srv;
-        u32 previous_frame_depth_texture_srv = 0xFF'FF'FF'FF;
-        u32 depth_texture_sampler = 0xFF'FF'FF'FF;
+        u32 visible_mesh_instances_srv = config::INVALID_SHADER_HANDLE;
+        u32 mesh_descriptors_srv = config::INVALID_SHADER_HANDLE;
+        u32 mesh_instance_transforms_srv = config::INVALID_SHADER_HANDLE;
+        u32 previous_frame_depth_texture_srv = config::INVALID_SHADER_HANDLE;
+        u32 depth_texture_sampler = config::INVALID_SHADER_HANDLE;
     } in_;
 
     struct {
-        u32 visible_meshlets_uav;
-        u32 visible_meshlets_count_uav;
+        u32 visible_meshlets_uav = config::INVALID_SHADER_HANDLE;
+        u32 visible_meshlets_count_uav = config::INVALID_SHADER_HANDLE;
     } out_;
 };
 
@@ -139,7 +140,9 @@ inline constexpr u32 MAX_VISIBLE_MESHLETS_COUNT = (1u << 20u) * 4u;
 
             encoder.push_constants(ubo_buffer, data.ubo_buffer_offset);
             encoder.dispatch_indirect(
-                get_pipeline(pipelines::MESHLET_CULLING_NAME, input.compute_pipelines),
+                helpers::get_pipeline(
+                    pipelines::common::culling::MESHLET_CULLING_NAME,
+                    input.compute_pipelines),
                 meshlet_culling_dispatch_args,
                 0);
         });

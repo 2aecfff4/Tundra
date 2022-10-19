@@ -2,18 +2,16 @@
 #include "core/core.h"
 #include "math/matrix4.h"
 #include "math/vector2.h"
-#include "math/vector3.h"
-#include "math/vector4.h"
 #include "renderer/frame_graph/frame_graph.h"
-#include "renderer/renderer.h"
+#include "renderer/render_input_output.h"
 
 namespace tundra::renderer::passes {
 
 ///
 struct GpuRasterizerInput {
 public:
-    math::Mat4 world_to_clip;
-    math::UVec2 view_size = {};
+    math::Mat4 world_to_clip = math::Mat4 {};
+    math::UVec2 view_size = math::UVec2 {};
 
 public:
     rhi::BufferHandle mesh_descriptors;

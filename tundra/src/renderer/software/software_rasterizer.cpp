@@ -13,10 +13,10 @@
 #include <array>
 #include <cstddef>
 
-namespace tundra::renderer {
+namespace tundra::renderer::software {
 
 ///
-[[nodiscard]] RenderOutput render(
+RenderOutput software_rasterizer(
     frame_graph::FrameGraph& fg, const RenderInput& input) noexcept
 {
     const usize instance_count = input.mesh_instances.size();
@@ -148,4 +148,4 @@ namespace tundra::renderer {
     };
 }
 
-} // namespace tundra::renderer
+} // namespace tundra::renderer::software

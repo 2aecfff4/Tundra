@@ -1,6 +1,7 @@
-#include "renderer/passes/gpu_rasterizer.h"
-#include "rhi/commands/command_encoder.h"
-#include "rhi/commands/dispatch_indirect.h"
+#include "renderer/software/passes/gpu_rasterizer.h"
+#include "pipelines.h"
+#include "renderer/config.h"
+#include "renderer/helpers.h"
 #include "rhi/rhi_context.h"
 
 namespace tundra::renderer::passes {
@@ -9,18 +10,18 @@ namespace ubo {
 
 ///
 struct GPURasterizeUBO {
-    math::Mat4 world_to_clip;
-    math::UVec2 view_size = {};
+    math::Mat4 world_to_clip = math::Mat4 {};
+    math::UVec2 view_size = math::UVec2 {};
 
     struct {
-        u32 mesh_instance_transforms_srv;
-        u32 mesh_descriptors_srv;
-        u32 visible_meshlets_srv;
-    } in_ = {};
+        u32 mesh_instance_transforms_srv = config::INVALID_SHADER_HANDLE;
+        u32 mesh_descriptors_srv = config::INVALID_SHADER_HANDLE;
+        u32 visible_meshlets_srv = config::INVALID_SHADER_HANDLE;
+    } in_;
 
     struct {
-        u32 output_texture_uav;
-    } out_ = {};
+        u32 output_texture_uav = config::INVALID_SHADER_HANDLE;
+    } out_;
 };
 
 } // namespace ubo
@@ -99,7 +100,9 @@ struct GPURasterizeUBO {
 
             encoder.push_constants(ubo_buffer, data.ubo_buffer_offset);
             encoder.dispatch_indirect(
-                get_pipeline(pipelines::GPU_RASTERIZE_PASS_NAME, input.compute_pipelines),
+                helpers::get_pipeline(
+                    pipelines::software::passes::GPU_RASTERIZE_PASS_NAME,
+                    input.compute_pipelines),
                 dispatch_indirect_args,
                 0);
         });

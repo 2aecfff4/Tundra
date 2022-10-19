@@ -1,4 +1,7 @@
-#include "renderer/passes/gpu_rasterizer_init.h"
+#include "renderer/software/passes/gpu_rasterizer_init.h"
+#include "pipelines.h"
+#include "renderer/config.h"
+#include "renderer/helpers.h"
 #include "rhi/commands/dispatch_indirect.h"
 #include "rhi/rhi_context.h"
 
@@ -8,11 +11,11 @@ namespace ubo {
 
 ///
 struct GpuRasterizeInitUBO {
-    math::UVec2 view_size;
-    math::UVec2 dispatch_grid_dim;
-    u32 visible_meshlets_count_srv;
-    u32 dispatch_args_uav;
-    u32 out_texture_uav;
+    math::UVec2 view_size = math::UVec2 {};
+    math::UVec2 dispatch_grid_dim = math::UVec2 {};
+    u32 visible_meshlets_count_srv = config::INVALID_SHADER_HANDLE;
+    u32 dispatch_args_uav = config::INVALID_SHADER_HANDLE;
+    u32 out_texture_uav = config::INVALID_SHADER_HANDLE;
 };
 
 } // namespace ubo
@@ -112,7 +115,9 @@ GpuRasterizerInitOutput gpu_rasterizer_init_pass(
 
             encoder.push_constants(ubo_buffer, data.ubo_buffer_offset);
             encoder.dispatch(
-                get_pipeline(pipelines::GPU_RASTERIZE_INIT_NAME, input.compute_pipelines),
+                helpers::get_pipeline(
+                    pipelines::software::passes::GPU_RASTERIZE_INIT_NAME,
+                    input.compute_pipelines),
                 dispatch_grid_dim.x,
                 dispatch_grid_dim.y,
                 1);
