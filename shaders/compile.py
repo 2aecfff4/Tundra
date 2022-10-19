@@ -6,7 +6,8 @@ import sys
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 dir_path = dir_path.replace('\\', '/')
-asset_dir = os.path.join(dir_path, os.pardir, "assets/shaders").replace('\\', '/')
+asset_dir = os.path.join(
+    dir_path, os.pardir, "assets/shaders").replace('\\', '/')
 
 
 for root, dirs, files in os.walk(os.path.join(dir_path, "src")):
@@ -26,12 +27,12 @@ for root, dirs, files in os.walk(os.path.join(dir_path, "src")):
         profile = ""
         extra_flags = ""
 
-        if(hlsl_file.find('.vert') != -1):
+        if (hlsl_file.find('.vert') != -1):
             profile = 'vs_6_6'
             extra_flags += "-fvk-invert-y"
-        elif(hlsl_file.find('.frag') != -1):
+        elif (hlsl_file.find('.frag') != -1):
             profile = 'ps_6_6'
-        elif(hlsl_file.find('.comp') != -1):
+        elif (hlsl_file.find('.comp') != -1):
             profile = 'cs_6_6'
         else:
             continue
@@ -39,7 +40,7 @@ for root, dirs, files in os.walk(os.path.join(dir_path, "src")):
         print("")
         print(f"====== Compiling `{hlsl_file}` ... ======")
         subprocess.call([
-            "H:/Programming/Projects/dxc-artifacts/bin/dxc.exe",
+            "dxc",
             "-HV 2021",
             "-O3",
             "-fspv-debug=line",
