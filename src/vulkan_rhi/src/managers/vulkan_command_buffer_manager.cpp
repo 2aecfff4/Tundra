@@ -12,7 +12,7 @@ namespace tundra::vulkan_rhi {
 /////////////////////////////////////////////////////////////////////////////////////////
 // VulkanCommandBufferManager::QueueThreadData
 
-thread_local static u64 THREAD_ID = std::hash<std::thread::id> {}(
+thread_local static const u64 THREAD_ID = std::hash<std::thread::id> {}(
     std::this_thread::get_id());
 
 void VulkanCommandBufferManager::QueueThreadData::clear_used_commands() noexcept
@@ -74,7 +74,8 @@ VulkanCommandBufferManager::~VulkanCommandBufferManager() noexcept
 
     for (FrameData& frame_data : m_frame_data) {
         const auto cleanup_frame_data = [&](QueueData& queue_data) {
-            for (auto& [_, thread_data] : queue_data.thread_to_storage) {
+            auto thread_to_storage = queue_data.thread_to_storage.lock();
+            for (auto& [_, thread_data] : *thread_to_storage) {
                 auto thread_data_lock = thread_data->lock();
 
                 // Destroy resources.
@@ -123,7 +124,8 @@ VulkanCommandBufferManager::CommandBundle VulkanCommandBufferManager::get_comman
         TNDR_PROFILER_TRACE(
             "VulkanCommandBufferManager::get_command_bundle::thread_data");
 
-        if (!queue_data.thread_to_storage.contains(THREAD_ID)) {
+        auto thread_to_storage = queue_data.thread_to_storage.lock();
+        if (!thread_to_storage->contains(THREAD_ID)) {
             const VkCommandPoolCreateInfo command_pool_create_info {
                 .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
                 .queueFamilyIndex = queue_data.queue_family_index,
@@ -144,7 +146,7 @@ VulkanCommandBufferManager::CommandBundle VulkanCommandBufferManager::get_comman
                 command_pool_name.c_str());
 #endif // TNDR_BUILD_SHIPPING
 
-            queue_data.thread_to_storage.insert({
+            thread_to_storage->insert({
                 THREAD_ID,
                 std::make_shared<core::Lock<QueueThreadData>>(QueueThreadData {
                     .command_pool = command_pool,
@@ -152,7 +154,7 @@ VulkanCommandBufferManager::CommandBundle VulkanCommandBufferManager::get_comman
             });
         }
 
-        return queue_data.thread_to_storage[THREAD_ID];
+        return thread_to_storage->at(THREAD_ID);
     }();
 
     const VkCommandBuffer command_buffer = [&] {
@@ -186,13 +188,13 @@ VulkanCommandBufferManager::CommandBundle VulkanCommandBufferManager::get_comman
 
             thread_data_lock->used_command_buffers.push_back(command_buffer);
             return command_buffer;
-        } else {
-            const VkCommandBuffer command_buffer = thread_data_lock->free_command_buffers
-                                                       .front();
-            thread_data_lock->free_command_buffers.pop_front();
-            thread_data_lock->used_command_buffers.push_back(command_buffer);
-            return command_buffer;
         }
+
+        const VkCommandBuffer command_buffer = thread_data_lock->free_command_buffers
+                                                   .front();
+        thread_data_lock->free_command_buffers.pop_front();
+        thread_data_lock->used_command_buffers.push_back(command_buffer);
+        return command_buffer;
     }();
 
     return VulkanCommandBufferManager::CommandBundle {
@@ -228,7 +230,8 @@ void VulkanCommandBufferManager::wait_for_free_pool() noexcept
     }
 
     const auto reset_command_pool = [&](QueueData& queue_data) {
-        for (auto& [_, thread_data] : queue_data.thread_to_storage) {
+        auto thread_to_storage = queue_data.thread_to_storage.lock();
+        for (auto& [_, thread_data] : *thread_to_storage) {
             auto thread_data_lock = thread_data->lock();
 
             vulkan_map_result(

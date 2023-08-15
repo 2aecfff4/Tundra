@@ -27,7 +27,8 @@ private:
     };
 
     struct QueueData {
-        core::HashMap<u64, core::SharedPtr<core::Lock<QueueThreadData>>> thread_to_storage;
+        core::Lock<core::HashMap<u64, core::SharedPtr<core::Lock<QueueThreadData>>>>
+            thread_to_storage;
         u32 queue_family_index;
     };
 
@@ -44,7 +45,7 @@ public:
         VkCommandBuffer command_buffer;
         core::SharedPtr<core::Lock<QueueThreadData>> thread_data;
 
-        [[nodiscard]] auto get_resources() noexcept
+        [[nodiscard]] auto get_resources() const noexcept
         {
             return thread_data->map(
                 [](QueueThreadData& data) -> rhi::ResourceTracker::Resources& {
