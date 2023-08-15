@@ -66,6 +66,11 @@ public:
         core::SharedPtr<rhi::ResourceTracker> resource_tracker) noexcept;
     ~VulkanCommandBufferManager() noexcept;
 
+    VulkanCommandBufferManager(const VulkanCommandBufferManager&) = delete;
+    VulkanCommandBufferManager(VulkanCommandBufferManager&&) noexcept = delete;
+    VulkanCommandBufferManager& operator=(const VulkanCommandBufferManager&) = delete;
+    VulkanCommandBufferManager& operator=(VulkanCommandBufferManager&&) noexcept = delete;
+
 public:
     [[nodiscard]] CommandBundle get_command_bundle(
         const rhi::QueueType queue_type) noexcept;
