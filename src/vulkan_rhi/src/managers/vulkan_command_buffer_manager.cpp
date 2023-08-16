@@ -73,6 +73,13 @@ VulkanCommandBufferManager::~VulkanCommandBufferManager() noexcept
     TNDR_PROFILER_TRACE("VulkanCommandBufferManager::~VulkanCommandBufferManager");
 
     for (FrameData& frame_data : m_frame_data) {
+        // All VkCommandBuffer objects allocated from commandPool must not be in the pending state
+        // https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/vkDestroyCommandPool.html#VUID-vkDestroyCommandPool-commandPool-00041
+        vulkan_map_result(
+            m_raw_device->get_device().wait_for_fences(
+                core::as_span(frame_data.fence), true, UINT64_MAX),
+            "`wait_for_fences` failed");
+
         const auto cleanup_frame_data = [&](QueueData& queue_data) {
             auto thread_to_storage = queue_data.thread_to_storage.lock();
             for (auto& [_, thread_data] : *thread_to_storage) {
