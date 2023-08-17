@@ -30,7 +30,7 @@ namespace tundra {
 ///
 class MeshletApp : public App {
 private:
-    static constexpr usize NUM_INSTANCES = 16;
+    static constexpr usize NUM_INSTANCES = 6;
 
 private:
     renderer::frame_graph::FrameGraph m_frame_graph;
@@ -100,7 +100,7 @@ public:
 
         std::mt19937 gen { 0 }; // NOLINT(cert-msc32-c, cert-msc51-cpp)
         std::uniform_real_distribution<f32> dist { 0, 1 };
-        const f32 scene_radius = 10.f;
+        const f32 scene_radius = 4.f;
         for (usize i = 0; i < NUM_INSTANCES; ++i) {
             math::Transform transform = math::Transform::IDENTITY;
             transform.position = math::Vec3 {
@@ -115,6 +115,8 @@ public:
                 .mesh_descriptor_index = 0,
             });
         }
+
+        m_camera_transform.position -= math::Vec3 { 0, 0, -8 };
 
         this->upload_mesh();
         this->create_pipelines();
