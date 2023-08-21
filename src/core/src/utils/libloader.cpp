@@ -27,7 +27,7 @@ void LibLoader::unload(const LibLoader::LibHandle* const lib) noexcept
 #if TNDR_PLATFORM_WINDOWS
     FreeLibrary(reinterpret_cast<HMODULE>(const_cast<LibLoader::LibHandle*>(lib)));
 #else
-    return dlclose(reinterpret_cast<void*>(const_cast<LibLoader::LibHandle*>(lib)));
+    dlclose(reinterpret_cast<void*>(const_cast<LibLoader::LibHandle*>(lib)));
 #endif
 }
 
