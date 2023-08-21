@@ -30,12 +30,12 @@ void VulkanCommandBufferManager::QueueThreadData::clear_used_commands() noexcept
 VulkanCommandBufferManager::VulkanCommandBufferManager(
     core::SharedPtr<VulkanRawDevice> raw_device,
     core::SharedPtr<rhi::ResourceTracker> resource_tracker) noexcept
-    : m_raw_device(raw_device)
-    , m_resource_tracker(resource_tracker)
+    : m_raw_device(core::move(raw_device))
+    , m_resource_tracker(core::move(resource_tracker))
 {
     TNDR_PROFILER_TRACE("VulkanCommandBufferManager::VulkanCommandBufferManager");
 
-    const VulkanQueues& queues = raw_device->get_queues();
+    const VulkanQueues& queues = m_raw_device->get_queues();
     for (FrameData& frame_data : m_frame_data) {
         const VkFenceCreateInfo fence_create_info {
             .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
@@ -43,7 +43,7 @@ VulkanCommandBufferManager::VulkanCommandBufferManager(
         };
 
         const VkFence fence = vulkan_map_result(
-            raw_device->get_device().create_fence(fence_create_info, nullptr),
+            m_raw_device->get_device().create_fence(fence_create_info, nullptr),
             "`create_fence` failed");
 
         frame_data = FrameData {
