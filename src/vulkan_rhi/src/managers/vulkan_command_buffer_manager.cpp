@@ -83,16 +83,14 @@ VulkanCommandBufferManager::~VulkanCommandBufferManager() noexcept
         const auto cleanup_frame_data = [&](QueueData& queue_data) {
             auto thread_to_storage = queue_data.thread_to_storage.lock();
             for (auto& [_, thread_data] : *thread_to_storage) {
-                auto thread_data_lock = thread_data->lock();
-
                 // Destroy resources.
-                for (const u64 resource : thread_data_lock->resources.resources) {
+                for (const u64 resource : thread_data->resources.resources) {
                     m_resource_tracker->remove_reference(resource);
                 }
-                thread_data_lock->resources.resources.clear();
+                thread_data->resources.resources.clear();
 
                 m_raw_device->get_device().destroy_command_pool(
-                    thread_data_lock->command_pool, nullptr);
+                    thread_data->command_pool, nullptr);
             }
         };
 
@@ -153,12 +151,11 @@ VulkanCommandBufferManager::CommandBundle VulkanCommandBufferManager::get_comman
                 command_pool_name.c_str());
 #endif // TNDR_BUILD_SHIPPING
 
-            thread_to_storage->insert({
+            thread_to_storage->emplace(
                 THREAD_ID,
-                std::make_shared<core::Lock<QueueThreadData>>(QueueThreadData {
+                std::make_shared<QueueThreadData>(QueueThreadData {
                     .command_pool = command_pool,
-                }),
-            });
+                }));
         }
 
         return thread_to_storage->at(THREAD_ID);
@@ -168,12 +165,10 @@ VulkanCommandBufferManager::CommandBundle VulkanCommandBufferManager::get_comman
         TNDR_PROFILER_TRACE(
             "VulkanCommandBufferManager::get_command_bundle::command_buffer");
 
-        auto thread_data_lock = thread_data->lock();
-
-        if (thread_data_lock->free_command_buffers.empty()) {
+        if (thread_data->free_command_buffers.empty()) {
             const VkCommandBufferAllocateInfo command_buffer_allocate_info {
                 .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-                .commandPool = thread_data_lock->command_pool,
+                .commandPool = thread_data->command_pool,
                 .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
                 .commandBufferCount = 1,
             };
@@ -193,14 +188,13 @@ VulkanCommandBufferManager::CommandBundle VulkanCommandBufferManager::get_comman
                 command_buffer_name.c_str());
 #endif // TNDR_BUILD_SHIPPING
 
-            thread_data_lock->used_command_buffers.push_back(command_buffer);
+            thread_data->used_command_buffers.push_back(command_buffer);
             return command_buffer;
         }
 
-        const VkCommandBuffer command_buffer = thread_data_lock->free_command_buffers
-                                                   .front();
-        thread_data_lock->free_command_buffers.pop_front();
-        thread_data_lock->used_command_buffers.push_back(command_buffer);
+        const VkCommandBuffer command_buffer = thread_data->free_command_buffers.front();
+        thread_data->free_command_buffers.pop_front();
+        thread_data->used_command_buffers.push_back(command_buffer);
         return command_buffer;
     }();
 
@@ -239,20 +233,18 @@ void VulkanCommandBufferManager::wait_for_free_pool() noexcept
     const auto reset_command_pool = [&](QueueData& queue_data) {
         auto thread_to_storage = queue_data.thread_to_storage.lock();
         for (auto& [_, thread_data] : *thread_to_storage) {
-            auto thread_data_lock = thread_data->lock();
-
             vulkan_map_result(
                 m_raw_device->get_device().reset_command_pool(
-                    thread_data_lock->command_pool, 0),
+                    thread_data->command_pool, 0),
                 "`reset_command_pool` failed");
 
-            thread_data_lock->clear_used_commands();
+            thread_data->clear_used_commands();
 
             // Destroy resources.
-            for (const u64 resource : thread_data_lock->resources.resources) {
+            for (const u64 resource : thread_data->resources.resources) {
                 m_resource_tracker->remove_reference(resource);
             }
-            thread_data_lock->resources.resources.clear();
+            thread_data->resources.resources.clear();
         }
     };
 

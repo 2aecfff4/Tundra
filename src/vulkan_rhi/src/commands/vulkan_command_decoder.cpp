@@ -192,7 +192,7 @@ void VulkanCommandDecoder::begin_render_pass(
             core::visit(
                 core::make_overload(
                     [&](rhi::TextureHandleType handle) {
-                        m_resources->add_reference(
+                        m_resources.add_reference(
                             *m_managers.resource_tracker, handle.get_id());
 
                         return m_managers.texture_manager->with(
@@ -204,7 +204,7 @@ void VulkanCommandDecoder::begin_render_pass(
                     },
                     [&](rhi::TextureViewHandleType handle)
                         -> core::Expected<VkImageView, rhi::HandleManagerError> {
-                        m_resources->add_reference(
+                        m_resources.add_reference(
                             *m_managers.resource_tracker, handle.get_id());
 
                         return m_managers.texture_view_manager->with(
@@ -230,7 +230,7 @@ void VulkanCommandDecoder::begin_render_pass(
                 core::visit(
                     core::make_overload(
                         [&](rhi::TextureHandleType handle) {
-                            m_resources->add_reference(
+                            m_resources.add_reference(
                                 *m_managers.resource_tracker, handle.get_id());
 
                             return m_managers.texture_manager->with(
@@ -243,7 +243,7 @@ void VulkanCommandDecoder::begin_render_pass(
                         },
                         [&](rhi::TextureViewHandleType handle)
                             -> core::Expected<VkImageView, rhi::HandleManagerError> {
-                            m_resources->add_reference(
+                            m_resources.add_reference(
                                 *m_managers.resource_tracker, handle.get_id());
 
                             return m_managers.texture_view_manager->with(
@@ -290,7 +290,7 @@ void VulkanCommandDecoder::begin_render_pass(
             core::visit(
                 core::make_overload(
                     [&](rhi::TextureHandleType handle) {
-                        m_resources->add_reference(
+                        m_resources.add_reference(
                             *m_managers.resource_tracker, handle.get_id());
 
                         return m_managers.texture_manager->with(
@@ -303,7 +303,7 @@ void VulkanCommandDecoder::begin_render_pass(
                     },
                     [&](rhi::TextureViewHandleType handle)
                         -> core::Expected<VkImageView, rhi::HandleManagerError> {
-                        m_resources->add_reference(
+                        m_resources.add_reference(
                             *m_managers.resource_tracker, handle.get_id());
 
                         return m_managers.texture_view_manager->with(
@@ -329,7 +329,7 @@ void VulkanCommandDecoder::begin_render_pass(
                 core::visit(
                     core::make_overload(
                         [&](rhi::TextureHandleType handle) {
-                            m_resources->add_reference(
+                            m_resources.add_reference(
                                 *m_managers.resource_tracker, handle.get_id());
 
                             return m_managers.texture_manager->with(
@@ -342,7 +342,7 @@ void VulkanCommandDecoder::begin_render_pass(
                         },
                         [&](rhi::TextureViewHandleType handle)
                             -> core::Expected<VkImageView, rhi::HandleManagerError> {
-                            m_resources->add_reference(
+                            m_resources.add_reference(
                                 *m_managers.resource_tracker, handle.get_id());
 
                             return m_managers.texture_view_manager->with(
@@ -429,7 +429,7 @@ void VulkanCommandDecoder::push_constants(
 {
     TNDR_PROFILER_TRACE_IF(PROFILE_DECODER, "VulkanCommandDecoder::push_constants");
 
-    m_resources->add_reference(
+    m_resources.add_reference(
         *m_managers.resource_tracker, cmd.ubo_buffer.get_handle().get_id());
 
     const rhi::PushConstants push_constants {
@@ -452,7 +452,7 @@ void VulkanCommandDecoder::bind_graphics_pipeline(
         PROFILE_DECODER, "VulkanCommandDecoder::bind_graphics_pipeline");
 
     if (m_cache.current_graphics_pipeline != cmd.pipeline) {
-        m_resources->add_reference(
+        m_resources.add_reference(
             *m_managers.resource_tracker, cmd.pipeline.get_handle().get_id());
         m_cache.current_graphics_pipeline = cmd.pipeline;
 
@@ -524,7 +524,7 @@ void VulkanCommandDecoder::bind_index_buffer(
 
     const auto index_buffer_tie = core::tie(cmd.buffer, cmd.index_type, cmd.offset);
     if (m_cache.current_index_buffer != index_buffer_tie) {
-        m_resources->add_reference(
+        m_resources.add_reference(
             *m_managers.resource_tracker, cmd.buffer.get_handle().get_id());
         m_cache.current_index_buffer = index_buffer_tie;
 
@@ -591,7 +591,7 @@ void VulkanCommandDecoder::draw_indexed_indirect(
     TNDR_PROFILER_TRACE_IF(
         PROFILE_DECODER, "VulkanCommandDecoder::draw_indexed_indirect");
 
-    m_resources->add_reference(
+    m_resources.add_reference(
         *m_managers.resource_tracker, cmd.buffer.get_handle().get_id());
 
     const VkBuffer indirect_buffer =
@@ -613,9 +613,9 @@ void VulkanCommandDecoder::draw_indexed_indirect_count(
     TNDR_PROFILER_TRACE_IF(
         PROFILE_DECODER, "VulkanCommandDecoder::draw_indexed_indirect_count");
 
-    m_resources->add_reference(
+    m_resources.add_reference(
         *m_managers.resource_tracker, cmd.buffer.get_handle().get_id());
-    m_resources->add_reference(
+    m_resources.add_reference(
         *m_managers.resource_tracker, cmd.count_buffer.get_handle().get_id());
 
     const VkBuffer indirect_buffer =
@@ -662,7 +662,7 @@ void VulkanCommandDecoder::dispatch_indirect(
 {
     TNDR_PROFILER_TRACE_IF(PROFILE_DECODER, "VulkanCommandDecoder::dispatch_indirect");
 
-    m_resources->add_reference(
+    m_resources.add_reference(
         *m_managers.resource_tracker, cmd.buffer.get_handle().get_id());
 
     this->bind_compute_pipeline(cmd.pipeline);
@@ -685,9 +685,9 @@ void VulkanCommandDecoder::buffer_copy(
 {
     TNDR_PROFILER_TRACE_IF(PROFILE_DECODER, "VulkanCommandDecoder::buffer_copy");
 
-    m_resources->add_reference(
+    m_resources.add_reference(
         *m_managers.resource_tracker, cmd.src.get_handle().get_id());
-    m_resources->add_reference(
+    m_resources.add_reference(
         *m_managers.resource_tracker, cmd.dst.get_handle().get_id());
 
     const VkBuffer src = m_managers.buffer_manager
@@ -730,9 +730,9 @@ void VulkanCommandDecoder::texture_copy(
 {
     TNDR_PROFILER_TRACE_IF(PROFILE_DECODER, "VulkanCommandDecoder::texture_copy");
 
-    m_resources->add_reference(
+    m_resources.add_reference(
         *m_managers.resource_tracker, cmd.src.get_handle().get_id());
-    m_resources->add_reference(
+    m_resources.add_reference(
         *m_managers.resource_tracker, cmd.dst.get_handle().get_id());
 
     const auto [src_image, src_image_aspect_flags] =
@@ -828,7 +828,7 @@ void VulkanCommandDecoder::texture_barrier(
     TNDR_PROFILER_TRACE_IF(PROFILE_DECODER, "VulkanCommandDecoder::texture_barrier");
 
     for (const rhi::TextureBarrier& barrier : cmd.barriers) {
-        m_resources->add_reference(
+        m_resources.add_reference(
             *m_managers.resource_tracker, barrier.texture.get_handle().get_id());
 
         tndr_assert(
@@ -851,9 +851,9 @@ void VulkanCommandDecoder::buffer_texture_copy(
 {
     TNDR_PROFILER_TRACE_IF(PROFILE_DECODER, "VulkanCommandDecoder::buffer_texture_copy");
 
-    m_resources->add_reference(
+    m_resources.add_reference(
         *m_managers.resource_tracker, cmd.src.get_handle().get_id());
-    m_resources->add_reference(
+    m_resources.add_reference(
         *m_managers.resource_tracker, cmd.dst.get_handle().get_id());
 
     const VkBuffer src_buffer =
@@ -915,9 +915,9 @@ void VulkanCommandDecoder::texture_buffer_copy(
 {
     TNDR_PROFILER_TRACE_IF(PROFILE_DECODER, "VulkanCommandDecoder::texture_buffer_copy");
 
-    m_resources->add_reference(
+    m_resources.add_reference(
         *m_managers.resource_tracker, cmd.src.get_handle().get_id());
-    m_resources->add_reference(
+    m_resources.add_reference(
         *m_managers.resource_tracker, cmd.dst.get_handle().get_id());
 
     const auto [src_image, src_image_aspect_flags] =
@@ -980,7 +980,7 @@ void VulkanCommandDecoder::buffer_barrier(
     TNDR_PROFILER_TRACE_IF(PROFILE_DECODER, "VulkanCommandDecoder::buffer_barrier");
 
     for (const rhi::BufferBarrier& barrier : cmd.barriers) {
-        m_resources->add_reference(
+        m_resources.add_reference(
             *m_managers.resource_tracker, barrier.buffer.get_handle().get_id());
 
         tndr_assert(
@@ -1005,7 +1005,7 @@ void VulkanCommandDecoder::bind_compute_pipeline(
         PROFILE_DECODER, "VulkanCommandDecoder::bind_compute_pipeline");
 
     if (m_cache.current_compute_pipeline != pipeline) {
-        m_resources->add_reference(
+        m_resources.add_reference(
             *m_managers.resource_tracker, pipeline.get_handle().get_id());
         m_cache.current_compute_pipeline = pipeline;
 

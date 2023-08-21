@@ -162,7 +162,7 @@ void VulkanSubmitWorkScheduler::submit(
 
         VulkanCommandBufferManager::CommandBundle command_bundle =
             managers.command_buffer_manager->get_command_bundle(rhi::QueueType::Present);
-        auto resources = command_bundle.get_resources();
+        auto& resources = command_bundle.get_resources();
 
         const VkCommandBufferBeginInfo command_buffer_begin_info {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -181,9 +181,9 @@ void VulkanSubmitWorkScheduler::submit(
             { 1.0, 0.75, 0.05, 1.0 });
 
         for (const rhi::PresentInfo& present_info : present_infos) {
-            resources->add_reference(
+            resources.add_reference(
                 *managers.resource_tracker, present_info.swapchain.get_handle().get_id());
-            resources->add_reference(
+            resources.add_reference(
                 *managers.resource_tracker, present_info.texture.get_handle().get_id());
 
             const auto
