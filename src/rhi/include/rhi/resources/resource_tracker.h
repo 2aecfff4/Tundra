@@ -62,7 +62,12 @@ private:
             return *this;
         }
 
-        Resource(Resource&&) noexcept = delete;
+        Resource(Resource&& rhs) noexcept
+            : resource_destructor(core::move(rhs.resource_destructor))
+        {
+            ref_count.store(
+                rhs.ref_count.load(std::memory_order_acquire), std::memory_order_release);
+        }
         Resource& operator=(Resource&&) noexcept = delete;
         ~Resource() noexcept = default;
     };
