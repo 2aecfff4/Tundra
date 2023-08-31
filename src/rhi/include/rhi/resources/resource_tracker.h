@@ -45,8 +45,8 @@ private:
         }
 
         Resource(const Resource& rhs) noexcept
+            : resource_destructor(rhs.resource_destructor)
         {
-            resource_destructor = rhs.resource_destructor;
             ref_count.store(
                 rhs.ref_count.load(std::memory_order_acquire), std::memory_order_release);
         }
@@ -61,6 +61,10 @@ private:
             }
             return *this;
         }
+
+        Resource(Resource&&) noexcept = delete;
+        Resource& operator=(Resource&&) noexcept = delete;
+        ~Resource() noexcept = default;
     };
 
     ///
