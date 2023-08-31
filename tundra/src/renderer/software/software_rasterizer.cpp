@@ -34,6 +34,7 @@ RenderOutput software_rasterizer(
     const math::Mat4 frustum = input.view_to_clip * input.world_to_view;
     const math::Mat4 frustum_t = math::transpose(frustum);
 
+    // Fast Extraction of Viewing Frustum Planes from the World-View-Projection Matrix - Gil Gribb and Klaus Hartmann
     const std::array<math::Vec4, 6> frustum_planes {
         math::normalize(-frustum_t[3] - frustum_t[0]), //
         math::normalize(-frustum_t[3] + frustum_t[0]), //
