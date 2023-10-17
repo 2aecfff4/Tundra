@@ -153,7 +153,7 @@ VulkanCommandBufferManager::CommandBundle VulkanCommandBufferManager::get_comman
 
             thread_to_storage->emplace(
                 THREAD_ID,
-                std::make_shared<QueueThreadData>(QueueThreadData {
+                core::make_shared<QueueThreadData>(QueueThreadData {
                     .command_pool = command_pool,
                 }));
         }
