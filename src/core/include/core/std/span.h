@@ -10,6 +10,7 @@ namespace span_impl {
 
 ///
 template <typename T>
+concept array_container = requires(T & c)
 {
     { c.data() };
     { c.size() };
@@ -226,6 +227,7 @@ Span(const Container&) -> Span<T>;
 ///
 template <typename T>
 [[nodiscard]] constexpr Span<T> as_span(T& obj) noexcept
+    requires(!span_impl::array_container<T>)
 {
     return Span<T>(obj);
 }
