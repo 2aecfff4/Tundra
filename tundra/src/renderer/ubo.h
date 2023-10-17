@@ -1,144 +1,192 @@
 #pragma once
 #include "core/core.h"
-#include "math/matrix4.h"
-#include "math/vector2.h"
-#include "math/vector3.h"
-#include "math/vector4.h"
-#include "renderer/config.h"
-#include <array>
+#include "core/std/assert.h"
+#include "renderer/frame_graph/resources/buffer.h"
 
-namespace tundra::renderer::ubo {
+namespace tundra::renderer {
 
 ///
-struct ClearIndirectBufferUBO {
-    u32 indirect_buffer_uav;
+class UboBuffer {
+public:
+    struct UboRef {
+        u64 offset = 0;
+        u64 size = 0;
+    };
+
+private:
+    frame_graph::BufferHandle m_buffer;
+    u64 m_size = 0;
+    u64 m_offset = 0;
+
+public:
+    UboBuffer(const frame_graph::BufferHandle buffer, const u64 size) noexcept
+        : m_buffer(buffer)
+        , m_size(size)
+    {
+    }
+
+public:
+    template <typename T>
+    [[nodiscard]] UboRef allocate() noexcept
+    {
+        const auto ubo_ref = UboRef {
+            .offset = m_offset,
+            .size = sizeof(T),
+        };
+        m_offset += sizeof(T);
+        tndr_assert(m_offset < m_size, "");
+        return ubo_ref;
+    }
+
+    [[nodiscard]] frame_graph::BufferHandle buffer() const noexcept
+    {
+        return m_buffer;
+    }
 };
 
-///
-struct InstanceCullingUBO {
-    std::array<math::Vec4, 6> frustum_planes;
-    u32 num_instances;
+} // namespace tundra::renderer
 
-    struct {
-        u32 mesh_descriptors_srv;
-        u32 mesh_instances_srv;
-        u32 mesh_instance_transforms_srv;
-    } in_;
+// #pragma once
+// #include "core/core.h"
+// #include "math/matrix4.h"
+// #include "math/vector2.h"
+// #include "math/vector3.h"
+// #include "math/vector4.h"
+// #include "renderer/config.h"
+// #include <array>
 
-    struct {
-        u32 visible_mesh_instances_uav;
-        u32 meshlet_culling_dispatch_args_uav;
-    } out_;
-};
+// namespace tundra::renderer::ubo {
 
-///
-struct MeshletCullingUBO {
-    math::Mat4 world_to_view;
-    std::array<math::Vec4, 6> frustum_planes;
-    math::Vec3 camera_position;
-    u32 max_num_meshlets;
+// ///
+// struct ClearIndirectBufferUBO {
+//     u32 indirect_buffer_uav;
+// };
 
-    struct {
-        u32 visible_mesh_instances_srv;
-        u32 mesh_descriptors_srv;
-        u32 mesh_instance_transforms_srv;
-    } in_;
+// ///
+// struct InstanceCullingUBO {
+//     std::array<math::Vec4, 6> frustum_planes;
+//     u32 num_instances;
 
-    struct {
-        u32 visible_meshlets_uav;
-        u32 visible_meshlets_count_uav;
-    } out_;
-};
+//     struct {
+//         u32 mesh_descriptors_srv;
+//         u32 mesh_instances_srv;
+//         u32 mesh_instance_transforms_srv;
+//     } in_;
 
-///
-struct ClearIndexBufferGeneratorDispatchArgs {
-    struct {
-        u32 meshlet_offset_uav;
-    } out_;
-};
+//     struct {
+//         u32 visible_mesh_instances_uav;
+//         u32 meshlet_culling_dispatch_args_uav;
+//     } out_;
+// };
 
-///
-struct GenerateDispatchArgsUBO {
-    u32 num_index_buffers_in_fight;
-    u32 num_meshlets_per_index_buffer;
+// ///
+// struct MeshletCullingUBO {
+//     math::Mat4 world_to_view;
+//     std::array<math::Vec4, 6> frustum_planes;
+//     math::Vec3 camera_position;
+//     u32 max_num_meshlets;
 
-    struct {
-        u32 num_visible_meshlets_srv;
-    } in_;
+//     struct {
+//         u32 visible_mesh_instances_srv;
+//         u32 mesh_descriptors_srv;
+//         u32 mesh_instance_transforms_srv;
+//     } in_;
 
-    struct {
-        u32 index_buffer_generator_dispatch_args_uav;
-        u32 index_buffer_generator_meshlet_offsets_uav;
-        u32 draw_meshlets_draw_counts_uav;
-        u32 draw_meshlets_draw_args_uav;
-    } out_;
+//     struct {
+//         u32 visible_meshlets_uav;
+//         u32 visible_meshlets_count_uav;
+//     } out_;
+// };
 
-    struct {
-        u32 meshlet_offset_uav;
-    } inout_;
-};
+// ///
+// struct ClearIndexBufferGeneratorDispatchArgs {
+//     struct {
+//         u32 meshlet_offset_uav;
+//     } out_;
+// };
 
-///
-struct IndexBufferGeneratorUBO {
-    math::Mat4 world_to_clip;
-    u32 max_num_indices;
-    u32 generator_index;
+// ///
+// struct GenerateDispatchArgsUBO {
+//     u32 num_index_buffers_in_fight;
+//     u32 num_meshlets_per_index_buffer;
 
-    struct {
-        u32 mesh_instance_transforms_srv;
-        u32 visible_meshlets_srv;
-        u32 mesh_descriptors_srv;
-        u32 meshlet_offsets_srv;
-    } in_;
+//     struct {
+//         u32 num_visible_meshlets_srv;
+//     } in_;
 
-    struct {
-        u32 index_buffer_uav;
-        u32 draw_meshlets_draw_args_uav;
-    } out_;
-};
+//     struct {
+//         u32 index_buffer_generator_dispatch_args_uav;
+//         u32 index_buffer_generator_meshlet_offsets_uav;
+//         u32 draw_meshlets_draw_counts_uav;
+//         u32 draw_meshlets_draw_args_uav;
+//     } out_;
 
-///
-struct VisibilityBufferPassUBO {
-    /// View
-    math::Mat4 world_to_view;
-    /// Projection
-    math::Mat4 view_to_clip;
+//     struct {
+//         u32 meshlet_offset_uav;
+//     } inout_;
+// };
 
-    struct {
-        u32 visible_meshlets_srv;
-        u32 mesh_descriptors_srv;
-        u32 mesh_instance_transforms_srv;
-    } in_;
-};
+// ///
+// struct IndexBufferGeneratorUBO {
+//     math::Mat4 world_to_clip;
+//     u32 max_num_indices;
+//     u32 generator_index;
 
-inline constexpr u64 CLEAR_INDIRECT_BUFFER_UBO_OFFSET = 0;
-inline constexpr u64 INSTANCE_CULLING_UBO_OFFSET = CLEAR_INDIRECT_BUFFER_UBO_OFFSET +
-                                                   sizeof(ClearIndirectBufferUBO);
+//     struct {
+//         u32 mesh_instance_transforms_srv;
+//         u32 visible_meshlets_srv;
+//         u32 mesh_descriptors_srv;
+//         u32 meshlet_offsets_srv;
+//     } in_;
 
-inline constexpr u64 MESHLET_CULLING_UBO_OFFSET = INSTANCE_CULLING_UBO_OFFSET +
-                                                  sizeof(InstanceCullingUBO);
+//     struct {
+//         u32 index_buffer_uav;
+//         u32 draw_meshlets_draw_args_uav;
+//     } out_;
+// };
 
-inline constexpr u64 CLEAR_INDEX_BUFFER_GENERATOR_DISPATCH_ARGS_OFFSET =
-    MESHLET_CULLING_UBO_OFFSET + sizeof(MeshletCullingUBO);
+// ///
+// struct VisibilityBufferPassUBO {
+//     /// View
+//     math::Mat4 world_to_view;
+//     /// Projection
+//     math::Mat4 view_to_clip;
 
-inline constexpr u64 GENERATE_DISPATCH_ARGS_UBO_OFFSET =
-    CLEAR_INDEX_BUFFER_GENERATOR_DISPATCH_ARGS_OFFSET +
-    sizeof(ClearIndexBufferGeneratorDispatchArgs);
+//     struct {
+//         u32 visible_meshlets_srv;
+//         u32 mesh_descriptors_srv;
+//         u32 mesh_instance_transforms_srv;
+//     } in_;
+// };
 
-inline constexpr u64 INDEX_BUFFER_GENERATOR_UBO_OFFSET =
-    GENERATE_DISPATCH_ARGS_UBO_OFFSET + sizeof(GenerateDispatchArgsUBO);
+// inline constexpr u64 CLEAR_INDIRECT_BUFFER_UBO_OFFSET = 0;
+// inline constexpr u64 INSTANCE_CULLING_UBO_OFFSET = CLEAR_INDIRECT_BUFFER_UBO_OFFSET +
+//                                                    sizeof(ClearIndirectBufferUBO);
 
-inline constexpr u64 VISIBILITY_BUFFER_PASS_UBO_OFFSET =
-    INDEX_BUFFER_GENERATOR_UBO_OFFSET +
-    (sizeof(GenerateDispatchArgsUBO) * config::NUM_INDEX_BUFFERS_IN_FIGHT);
+// inline constexpr u64 MESHLET_CULLING_UBO_OFFSET = INSTANCE_CULLING_UBO_OFFSET +
+//                                                   sizeof(InstanceCullingUBO);
 
-inline constexpr u64 TOTAL_UBO_SIZE = CLEAR_INDIRECT_BUFFER_UBO_OFFSET +
-                                      INSTANCE_CULLING_UBO_OFFSET +
-                                      MESHLET_CULLING_UBO_OFFSET +
-                                      GENERATE_DISPATCH_ARGS_UBO_OFFSET +
-                                      INDEX_BUFFER_GENERATOR_UBO_OFFSET +
-                                      VISIBILITY_BUFFER_PASS_UBO_OFFSET +
-                                      (sizeof(VisibilityBufferPassUBO) *
-                                       config::NUM_INDEX_BUFFERS_IN_FIGHT);
+// inline constexpr u64 CLEAR_INDEX_BUFFER_GENERATOR_DISPATCH_ARGS_OFFSET =
+//     MESHLET_CULLING_UBO_OFFSET + sizeof(MeshletCullingUBO);
 
-} // namespace tundra::renderer::ubo
+// inline constexpr u64 GENERATE_DISPATCH_ARGS_UBO_OFFSET =
+//     CLEAR_INDEX_BUFFER_GENERATOR_DISPATCH_ARGS_OFFSET +
+//     sizeof(ClearIndexBufferGeneratorDispatchArgs);
+
+// inline constexpr u64 INDEX_BUFFER_GENERATOR_UBO_OFFSET =
+//     GENERATE_DISPATCH_ARGS_UBO_OFFSET + sizeof(GenerateDispatchArgsUBO);
+
+// inline constexpr u64 VISIBILITY_BUFFER_PASS_UBO_OFFSET =
+//     INDEX_BUFFER_GENERATOR_UBO_OFFSET +
+//     (sizeof(GenerateDispatchArgsUBO) * config::NUM_INDEX_BUFFERS_IN_FIGHT);
+
+// inline constexpr u64 TOTAL_UBO_SIZE = CLEAR_INDIRECT_BUFFER_UBO_OFFSET +
+//                                       INSTANCE_CULLING_UBO_OFFSET +
+//                                       MESHLET_CULLING_UBO_OFFSET +
+//                                       GENERATE_DISPATCH_ARGS_UBO_OFFSET +
+//                                       INDEX_BUFFER_GENERATOR_UBO_OFFSET +
+//                                       VISIBILITY_BUFFER_PASS_UBO_OFFSET +
+//                                       (sizeof(VisibilityBufferPassUBO) *
+//                                        config::NUM_INDEX_BUFFERS_IN_FIGHT);
+
+// } // namespace tundra::renderer::ubo

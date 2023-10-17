@@ -40,12 +40,8 @@ InstanceCullingOutput instance_culling_and_lod(
 {
     tndr_assert(input.instance_count < config::MAX_INSTANCE_COUNT, "Too many instances");
 
-    const u64 ubo_buffer_offset = input.ubo_buffer_offset +
-                                  sizeof(ubo::InstanceCullingUBO);
-
     struct Data {
-        frame_graph::BufferHandle ubo_buffer;
-        u64 ubo_buffer_offset = 0;
+        core::SharedPtr<UboBuffer> ubo_buffer;
 
         frame_graph::BufferHandle visible_instances;
         frame_graph::BufferHandle meshlet_culling_dispatch_args;
@@ -58,7 +54,6 @@ InstanceCullingOutput instance_culling_and_lod(
             Data data {};
 
             data.ubo_buffer = input.ubo_buffer;
-            data.ubo_buffer_offset = input.ubo_buffer_offset;
 
             data.visible_instances = builder.create_buffer(
                 "instance_culling_and_lod.visible_instances",
@@ -91,7 +86,8 @@ InstanceCullingOutput instance_culling_and_lod(
             rhi::CommandEncoder& encoder,
             const Data& data) {
             //
-            const rhi::BufferHandle ubo_buffer = registry.get_buffer(data.ubo_buffer);
+            const rhi::BufferHandle ubo_buffer = registry.get_buffer(
+                data.ubo_buffer->buffer());
             const rhi::BufferHandle visible_instances = registry.get_buffer(
                 data.visible_instances);
             const rhi::BufferHandle meshlet_culling_dispatch_args = registry.get_buffer(
@@ -111,16 +107,18 @@ InstanceCullingOutput instance_culling_and_lod(
                 },
             };
 
+            const auto ubo_ref = data.ubo_buffer->allocate<ubo::InstanceCullingUBO>();
+
             rhi->update_buffer(
                 ubo_buffer,
                 {
                     rhi::BufferUpdateRegion {
                         .src = core::as_byte_span(ubo),
-                        .dst_offset = data.ubo_buffer_offset,
+                        .dst_offset = ubo_ref.offset,
                     },
                 });
 
-            encoder.push_constants(ubo_buffer, data.ubo_buffer_offset);
+            encoder.push_constants(ubo_buffer, ubo_ref.offset);
             encoder.dispatch(
                 helpers::get_pipeline(
                     pipelines::common::culling::INSTANCE_CULLING_AND_LOD_PIPELINE_NAME,
@@ -128,11 +126,14 @@ InstanceCullingOutput instance_culling_and_lod(
                 rhi::CommandEncoder::get_group_count(input.instance_count, 128),
                 1,
                 1);
+
+            encoder.global_barrier(rhi::GlobalBarrier {
+                .previous_access = rhi::AccessFlags::GENERAL,
+                .next_access = rhi::AccessFlags::GENERAL,
+            });
         });
 
     return InstanceCullingOutput {
-        .ubo_buffer = data.ubo_buffer,
-        .ubo_buffer_offset = ubo_buffer_offset,
         .visible_instances = data.visible_instances,
         .meshlet_culling_dispatch_args = data.meshlet_culling_dispatch_args,
     };

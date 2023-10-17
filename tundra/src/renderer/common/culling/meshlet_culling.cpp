@@ -45,12 +45,8 @@ inline constexpr u32 MAX_VISIBLE_MESHLETS_COUNT = (1u << 20u) * 4u;
         input.max_meshlet_count < config::MAX_VISIBLE_MESHLETS_COUNT,
         "Too many meshlets.");
 
-    const u64 ubo_buffer_offset = input.ubo_buffer_offset +
-                                  sizeof(ubo::MeshletCullingUBO);
-
     struct Data {
-        frame_graph::BufferHandle ubo_buffer;
-        u64 ubo_buffer_offset = 0;
+        core::SharedPtr<UboBuffer> ubo_buffer;
 
         frame_graph::BufferHandle visible_instances;
         frame_graph::BufferHandle meshlet_culling_dispatch_args;
@@ -66,7 +62,6 @@ inline constexpr u32 MAX_VISIBLE_MESHLETS_COUNT = (1u << 20u) * 4u;
             Data data {};
 
             data.ubo_buffer = input.ubo_buffer;
-            data.ubo_buffer_offset = input.ubo_buffer_offset;
 
             data.visible_instances = builder.read(
                 input.visible_instances, frame_graph::ResourceUsage::SHADER_COMPUTE);
@@ -104,7 +99,8 @@ inline constexpr u32 MAX_VISIBLE_MESHLETS_COUNT = (1u << 20u) * 4u;
             rhi::CommandEncoder& encoder,
             const Data& data) {
             //
-            const rhi::BufferHandle ubo_buffer = registry.get_buffer(data.ubo_buffer);
+            const rhi::BufferHandle ubo_buffer = registry.get_buffer(
+                data.ubo_buffer->buffer());
             const rhi::BufferHandle visible_instances = registry.get_buffer(
                 data.visible_instances);
             const rhi::BufferHandle meshlet_culling_dispatch_args = registry.get_buffer(
@@ -129,27 +125,32 @@ inline constexpr u32 MAX_VISIBLE_MESHLETS_COUNT = (1u << 20u) * 4u;
                 },
             };
 
+            const auto ubo_ref = data.ubo_buffer->allocate<ubo::MeshletCullingUBO>();
+
             rhi->update_buffer(
                 ubo_buffer,
                 {
                     rhi::BufferUpdateRegion {
                         .src = core::as_byte_span(ubo),
-                        .dst_offset = data.ubo_buffer_offset,
+                        .dst_offset = ubo_ref.offset,
                     },
                 });
 
-            encoder.push_constants(ubo_buffer, data.ubo_buffer_offset);
+            encoder.push_constants(ubo_buffer, ubo_ref.offset);
             encoder.dispatch_indirect(
                 helpers::get_pipeline(
                     pipelines::common::culling::MESHLET_CULLING_NAME,
                     input.compute_pipelines),
                 meshlet_culling_dispatch_args,
                 0);
+
+            encoder.global_barrier(rhi::GlobalBarrier {
+                .previous_access = rhi::AccessFlags::GENERAL,
+                .next_access = rhi::AccessFlags::GENERAL,
+            });
         });
 
     return MeshletCullingOutput {
-        .ubo_buffer = data.ubo_buffer,
-        .ubo_buffer_offset = ubo_buffer_offset,
         .visible_meshlets = data.visible_meshlets,
         .visible_meshlets_count = data.visible_meshlets_count,
     };

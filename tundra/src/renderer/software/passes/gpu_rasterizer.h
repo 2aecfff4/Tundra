@@ -1,14 +1,19 @@
 #pragma once
 #include "core/core.h"
+#include "core/std/shared_ptr.h"
 #include "math/matrix4.h"
 #include "math/vector2.h"
 #include "renderer/frame_graph/frame_graph.h"
 #include "renderer/render_input_output.h"
+#include "renderer/ubo.h"
 
 namespace tundra::renderer::passes {
 
 ///
 struct GpuRasterizerInput {
+public:
+    core::SharedPtr<UboBuffer> ubo_buffer;
+
 public:
     math::Mat4 world_to_clip = math::Mat4 {};
     math::UVec2 view_size = math::UVec2 {};
@@ -18,9 +23,6 @@ public:
     rhi::BufferHandle mesh_instance_transforms;
 
 public:
-    frame_graph::BufferHandle ubo_buffer;
-    u64 ubo_buffer_offset = 0;
-
     frame_graph::BufferHandle visible_meshlets;
     frame_graph::BufferHandle dispatch_indirect_args;
     frame_graph::TextureHandle vis_texture;
@@ -31,9 +33,6 @@ public:
 
 ///
 struct GpuRasterizerOutput {
-    frame_graph::BufferHandle ubo_buffer;
-    u64 ubo_buffer_offset = 0;
-
     frame_graph::TextureHandle vis_texture;
 };
 

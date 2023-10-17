@@ -10,7 +10,6 @@ namespace span_impl {
 
 ///
 template <typename T>
-concept array_container = requires(T& c)
 {
     { c.data() };
     { c.size() };

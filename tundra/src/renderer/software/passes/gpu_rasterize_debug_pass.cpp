@@ -22,12 +22,8 @@ struct GpuRasterizeDebugUBO {
 GpuRasterizeDebugOutput gpu_rasterize_debug_pass(
     frame_graph::FrameGraph& fg, const GpuRasterizeDebugInput& input) noexcept
 {
-    const u64 ubo_buffer_offset = input.ubo_buffer_offset +
-                                  sizeof(ubo::GpuRasterizeDebugUBO);
-
     struct Data {
-        frame_graph::BufferHandle ubo_buffer;
-        u64 ubo_buffer_offset = 0;
+        core::SharedPtr<UboBuffer> ubo_buffer;
 
         frame_graph::TextureHandle vis_depth;
         frame_graph::TextureHandle debug_texture;
@@ -40,7 +36,6 @@ GpuRasterizeDebugOutput gpu_rasterize_debug_pass(
             Data data {};
 
             data.ubo_buffer = input.ubo_buffer;
-            data.ubo_buffer_offset = input.ubo_buffer_offset;
 
             data.vis_depth = builder.read(
                 input.vis_depth, frame_graph::ResourceUsage::SHADER_COMPUTE);
@@ -69,28 +64,30 @@ GpuRasterizeDebugOutput gpu_rasterize_debug_pass(
             const frame_graph::Registry& registry,
             rhi::CommandEncoder& encoder,
             const Data& data) {
-            const rhi::BufferHandle ubo_buffer = registry.get_buffer(data.ubo_buffer);
+            const rhi::BufferHandle ubo_buffer = registry.get_buffer(
+                data.ubo_buffer->buffer());
             const rhi::TextureHandle vis_depth = registry.get_texture(data.vis_depth);
             const rhi::TextureHandle debug_texture = registry.get_texture(
                 data.debug_texture);
 
-            const u64 generate_dispatch_args_ubo_offset = data.ubo_buffer_offset;
             const ubo::GpuRasterizeDebugUBO ubo {
                 .size = input.view_size,
                 .input_srv = vis_depth.get_uav(),
                 .output_uav = debug_texture.get_uav(),
             };
 
+            const auto ubo_ref = data.ubo_buffer->allocate<ubo::GpuRasterizeDebugUBO>();
+
             rhi->update_buffer(
                 ubo_buffer,
                 {
                     rhi::BufferUpdateRegion {
                         .src = core::as_byte_span(ubo),
-                        .dst_offset = generate_dispatch_args_ubo_offset,
+                        .dst_offset = ubo_ref.offset,
                     },
                 });
 
-            encoder.push_constants(ubo_buffer, data.ubo_buffer_offset);
+            encoder.push_constants(ubo_buffer, ubo_ref.offset);
             encoder.dispatch(
                 helpers::get_pipeline(
                     pipelines::software::passes::GPU_RASTERIZE_DEBUG_PASS_NAME,
@@ -101,8 +98,6 @@ GpuRasterizeDebugOutput gpu_rasterize_debug_pass(
         });
 
     return GpuRasterizeDebugOutput {
-        .ubo_buffer = data.ubo_buffer,
-        .ubo_buffer_offset = ubo_buffer_offset,
         .debug_texture = data.debug_texture,
     };
 }

@@ -24,12 +24,8 @@ struct GpuRasterizeInitUBO {
 GpuRasterizerInitOutput gpu_rasterizer_init_pass(
     frame_graph::FrameGraph& fg, const GpuRasterizerInitInput& input) noexcept
 {
-    const u64 ubo_buffer_offset = input.ubo_buffer_offset +
-                                  sizeof(ubo::GpuRasterizeInitUBO);
-
     struct Data {
-        frame_graph::BufferHandle ubo_buffer;
-        u64 ubo_buffer_offset = 0;
+        core::SharedPtr<UboBuffer> ubo_buffer;
 
         frame_graph::BufferHandle visible_meshlets_count;
 
@@ -44,7 +40,6 @@ GpuRasterizerInitOutput gpu_rasterizer_init_pass(
             Data data {};
 
             data.ubo_buffer = input.ubo_buffer;
-            data.ubo_buffer_offset = input.ubo_buffer_offset;
 
             data.visible_meshlets_count = builder.read(
                 input.visible_meshlets_count, frame_graph::ResourceUsage::SHADER_COMPUTE);
@@ -84,7 +79,8 @@ GpuRasterizerInitOutput gpu_rasterizer_init_pass(
             rhi::CommandEncoder& encoder,
             const Data& data) {
             //
-            const rhi::BufferHandle ubo_buffer = registry.get_buffer(data.ubo_buffer);
+            const rhi::BufferHandle ubo_buffer = registry.get_buffer(
+                data.ubo_buffer->buffer());
             const rhi::BufferHandle visible_meshlets_count = registry.get_buffer(
                 data.visible_meshlets_count);
             const rhi::BufferHandle gpu_rasterizer_dispatch_args = registry.get_buffer(
@@ -104,16 +100,18 @@ GpuRasterizerInitOutput gpu_rasterizer_init_pass(
                 .out_texture_uav = vis_texture.get_uav(),
             };
 
+            const auto ubo_ref = data.ubo_buffer->allocate<ubo::GpuRasterizeInitUBO>();
+
             rhi->update_buffer(
                 ubo_buffer,
                 {
                     rhi::BufferUpdateRegion {
                         .src = core::as_byte_span(ubo),
-                        .dst_offset = data.ubo_buffer_offset,
+                        .dst_offset = ubo_ref.offset,
                     },
                 });
 
-            encoder.push_constants(ubo_buffer, data.ubo_buffer_offset);
+            encoder.push_constants(ubo_buffer, ubo_ref.offset);
             encoder.dispatch(
                 helpers::get_pipeline(
                     pipelines::software::passes::GPU_RASTERIZE_INIT_NAME,
@@ -124,8 +122,6 @@ GpuRasterizerInitOutput gpu_rasterizer_init_pass(
         });
 
     return GpuRasterizerInitOutput {
-        .ubo_buffer = data.ubo_buffer,
-        .ubo_buffer_offset = ubo_buffer_offset,
         .vis_texture = data.vis_texture,
         .gpu_rasterizer_dispatch_args = data.gpu_rasterizer_dispatch_args,
     };
