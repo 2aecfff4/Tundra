@@ -1,6 +1,7 @@
 #pragma once
 #include "renderer/renderer_export.h"
 #include "core/core.h"
+#include "core/std/assert.h"
 #include "core/std/containers/string.h"
 #include "renderer/frame_graph/render_pass.h"
 #include "renderer/frame_graph/resources/buffer.h"
@@ -30,6 +31,9 @@ public:
     template <u32 Id>
     Handle<Id> read(const Handle<Id> handle, const ResourceUsage resource_usage) noexcept
     {
+        tndr_assert(
+            handle.is_valid(),
+            "The handle is invalid. Most likely it is just not initialized.");
         this->read_impl(handle.handle, resource_usage);
         return handle;
     }
@@ -37,6 +41,9 @@ public:
     template <u32 Id>
     Handle<Id> write(const Handle<Id> handle, const ResourceUsage resource_usage) noexcept
     {
+        tndr_assert(
+            handle.is_valid(),
+            "The handle is invalid. Most likely it is just not initialized.");
         this->write_impl(handle.handle, resource_usage);
         return handle;
     }

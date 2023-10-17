@@ -1,4 +1,5 @@
 #include "renderer/frame_graph/builder.h"
+#include "core/std/assert.h"
 #include "renderer/frame_graph/frame_graph.h"
 
 namespace tundra::renderer::frame_graph {

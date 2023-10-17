@@ -2,6 +2,7 @@
 #include "core/profiler.h"
 #include "core/std/assert.h"
 #include "core/std/containers/hash_set.h"
+#include "core/std/panic.h"
 #include "core/std/tuple.h"
 #include "renderer/frame_graph/resources/buffer.h"
 #include "renderer/frame_graph/resources/texture.h"
@@ -651,7 +652,16 @@ void FrameGraph::build_barriers() noexcept
                             discard_previous_contents);
                     }
                 } else {
-                    tndr_assert(!is_read, "No one used resource before us.");
+                    const auto& resource_name =
+                        m_resources.at(static_cast<usize>(resource_id))->get_name();
+                    const auto& pass_name = pass->get_name();
+                    if (is_read) {
+                        core::panic(
+                            "[{}]: no one used `{}` before us", //
+                            pass_name,
+                            resource_name);
+                    }
+                    // tndr_assert(!is_read, "No one used resource before us.");
                     // We are inserting a barrier, but only for textures. For buffers we don't bother.
 
                     const ResourceType resource_type =
