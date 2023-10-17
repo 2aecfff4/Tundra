@@ -17,10 +17,6 @@ namespace tundra::pipelines {
         core::Array<std::pair<const char*, PipelineInfo>> {
             { common::culling::INSTANCE_CULLING_AND_LOD_PIPELINE_NAME, Compute {} },
             { common::culling::MESHLET_CULLING_NAME, Compute {} },
-            { hardware::culling::CLEAR_INDEX_BUFFER_GENERATOR_DISPATCH_ARGS_NAME,
-              Compute {} },
-            { hardware::culling::GENERATE_INDEX_BUFFER_GENERATOR_DISPATCH_ARGS_NAME,
-              Compute {} },
             { hardware::culling::INDEX_BUFFER_GENERATOR_NAME, Compute {} },
             {
                 hardware::passes::VISIBILITY_BUFFER_PASS,

@@ -24,11 +24,6 @@ namespace hardware {
 ///
 namespace culling {
 
-inline constexpr const char* CLEAR_INDEX_BUFFER_GENERATOR_DISPATCH_ARGS_NAME =
-    "visibility_buffer/hardware/culling/clear_index_buffer_generator_dispatch_args";
-
-inline constexpr const char* GENERATE_INDEX_BUFFER_GENERATOR_DISPATCH_ARGS_NAME =
-    "visibility_buffer/hardware/culling/generate_index_buffer_generator_dispatch_args";
 
 inline constexpr const char* INDEX_BUFFER_GENERATOR_NAME =
     "visibility_buffer/hardware/culling/index_buffer_generator";
