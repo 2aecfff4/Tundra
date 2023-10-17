@@ -5,7 +5,6 @@ namespace tundra::pipelines {
 ///
 [[nodiscard]] const core::Array<std::pair<const char*, PipelineInfo>>& get_pipelines()
 {
-
     const core::Array<rhi::ColorBlendDesc> color_blend_attachments {
         rhi::ColorBlendDesc {
             .mask = rhi::ColorWriteMask::RGBA,
@@ -17,7 +16,9 @@ namespace tundra::pipelines {
         core::Array<std::pair<const char*, PipelineInfo>> {
             { common::culling::INSTANCE_CULLING_AND_LOD_PIPELINE_NAME, Compute {} },
             { common::culling::MESHLET_CULLING_NAME, Compute {} },
+            { hardware::culling::INDEX_BUFFER_GENERATOR_INIT_NAME, Compute {} },
             { hardware::culling::INDEX_BUFFER_GENERATOR_NAME, Compute {} },
+            { hardware::culling::GENERATE_DRAW_INDIRECT_COMMANDS_NAME, Compute {} },
             {
                 hardware::passes::VISIBILITY_BUFFER_PASS,
                 Graphics {

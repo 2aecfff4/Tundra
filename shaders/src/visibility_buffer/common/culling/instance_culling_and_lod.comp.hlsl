@@ -46,6 +46,7 @@ bool cull_frustum_mesh_instance(
                                   : SV_DispatchThreadID) {
     const InstanceCullingUBO ubo = tundra::load_ubo<InstanceCullingUBO>();
 
+    // #TODO: Move this to init compute shader
     if (thread_id == 0) {
         tundra::buffer_store<false>(
             ubo.out_.meshlet_culling_dispatch_args_uav,

@@ -24,9 +24,14 @@ namespace hardware {
 ///
 namespace culling {
 
+inline constexpr const char* INDEX_BUFFER_GENERATOR_INIT_NAME =
+    "visibility_buffer/hardware/culling/index_buffer_generator_init";
 
 inline constexpr const char* INDEX_BUFFER_GENERATOR_NAME =
     "visibility_buffer/hardware/culling/index_buffer_generator";
+
+inline constexpr const char* GENERATE_DRAW_INDIRECT_COMMANDS_NAME =
+    "visibility_buffer/hardware/culling/generate_draw_indirect_commands";
 
 } // namespace culling
 

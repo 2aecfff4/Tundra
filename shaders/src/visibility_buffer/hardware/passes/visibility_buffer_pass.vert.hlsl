@@ -18,9 +18,7 @@ struct VisibilityBufferVertInput {
 ///
 struct VisibilityBufferVertOutput {
     float4 position : SV_Position;
-    float2 uv : TEXCOORD0;
-    uint visible_meshlet_index : TEXCOORD1;
-    uint meshlet_index : TEXCOORD2;
+    uint visible_meshlet_index : TEXCOORD0;
 };
 
 ///
@@ -90,9 +88,7 @@ VisibilityBufferVertOutput main(VisibilityBufferVertInput input)
     pos = mul(ubo.view_to_clip, pos);
 
     output.position = pos;
-    output.uv = mesh_descriptor.get_uv(meshlet, unpacked_index.vertex_id, 0);
     output.visible_meshlet_index = unpacked_index.meshlet_id;
-    output.meshlet_index = visible_meshlet.meshlet_index;
 
     return output;
 }

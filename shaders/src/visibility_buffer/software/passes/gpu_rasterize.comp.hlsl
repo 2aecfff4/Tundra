@@ -172,7 +172,7 @@ groupshared float3 g_vertices[64];
         }
     }
 
-    DeviceMemoryBarrierWithGroupSync();
+    GroupMemoryBarrierWithGroupSync();
 
     /////////////////////////////////////////////////////////////////////////////////////
     // Rasterize

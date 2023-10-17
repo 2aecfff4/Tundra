@@ -10,6 +10,8 @@ set(PRIVATE_HDRS
     src/renderer/common/culling/instance_culling_and_lod.h
     src/renderer/common/culling/meshlet_culling.h
 
+    src/renderer/hardware/culling/index_buffer_generator_init.h
+
     src/renderer/hardware/hardware_rasterizer.h
 
     src/renderer/software/passes/gpu_rasterize_debug_pass.h
@@ -32,6 +34,8 @@ set(PRIVATE_HDRS
 set(SRC
     src/renderer/common/culling/instance_culling_and_lod.cpp
     src/renderer/common/culling/meshlet_culling.cpp
+
+    src/renderer/hardware/culling/index_buffer_generator_init.cpp
 
     src/renderer/hardware/hardware_rasterizer.cpp
 

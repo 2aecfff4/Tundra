@@ -46,6 +46,7 @@ struct Input {
 [numthreads(NUM_THREADS_X, 1, 1)] void main(const Input input) {
     const MeshletCullingUBO ubo = tundra::load_ubo<MeshletCullingUBO>();
 
+    // #TODO: Move this to init compute shader
     if (input.thread_id == 0) {
         tundra::buffer_store<false>(ubo.out_.visible_meshlets_count_uav, 0, 0, 0);
     }
@@ -66,8 +67,7 @@ struct Input {
     const uint num_loops = (mesh_descriptor.meshlet_count + (NUM_THREADS_X - 1)) /
                            NUM_THREADS_X;
 
-    LOOP for (uint i = 0; i < num_loops; ++i)
-    {
+    for (uint i = 0; i < num_loops; ++i) {
         const uint meshlet_index = input.meshlet_index + (i * NUM_THREADS_X);
 
         bool is_visible = false;
@@ -109,8 +109,7 @@ struct Input {
         // Get `global_meshlet_offset` from the first lane.
         global_meshlet_offset = WaveReadLaneFirst(global_meshlet_offset);
 
-        if (is_visible && (meshlet_index < mesh_descriptor.meshlet_count) &&
-            ((global_meshlet_offset + meshlet_offset) < ubo.max_meshlet_count)) {
+        if (is_visible && (meshlet_index < mesh_descriptor.meshlet_count)) {
             tundra::buffer_store<false>(
                 ubo.out_.visible_meshlets_uav,
                 0,

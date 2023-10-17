@@ -3,6 +3,7 @@
 #include "hash.hlsli"
 #include "math/quat.hlsli"
 #include "templates.hlsli"
+#include "visibility_buffer/inc/unpacked_index.hlsli"
 
 ///
 struct GpuRasterizeDebugUBO {
@@ -23,12 +24,15 @@ struct GpuRasterizeDebugUBO {
     const RWTexture2D<uint64_t> input = g_rw_textures2D_uint64[ubo.input_srv];
     RWTexture2D<float4> output = g_rw_textures2D_float4[ubo.output_uav];
     const uint64_t v = input[dispatch_id.xy];
-    const float depth = asfloat((int)(v >> 32));
+    const float depth = asfloat((uint)(v >> 32));
     const uint meshlet_triangle = (uint)(v & 0xFFFFFFFF);
 
-    // const float3 color = (float3)(0.0001 / depth);
+    // const float3 color = (float3)(0.001f / depth);
+    // const float3 color = (float3)(depth);
 
     const uint hash = hash_uint(meshlet_triangle >> 7);
+    // // const uint hash = hash_uint(meshlet_triangle & VERTEX_ID_MASK);
+    // // const uint hash = hash_uint(meshlet_triangle);
     const float3 color = float3(
                              float(hash & 0xff),
                              float((hash >> 8) & 0xff),
