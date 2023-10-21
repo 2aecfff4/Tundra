@@ -79,3 +79,4 @@ BreakBeforeConceptDeclarations: true
 EmptyLineBeforeAccessModifier: Always
 IndentRequires: false
 IndentAccessModifiers: false
+BreakAfterAttributes: Leave
