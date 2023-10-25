@@ -35,8 +35,8 @@ struct Input {
             0,
             0,
             DispatchIndirectCommand::create(
-                num_visible_meshlets, //
-                1,
+                min(((num_visible_meshlets + 127) / 128), 65535), //
+                128,
                 1));
     }
 

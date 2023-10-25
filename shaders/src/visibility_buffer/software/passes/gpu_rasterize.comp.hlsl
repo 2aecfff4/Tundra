@@ -37,6 +37,7 @@ struct Input {
     uint triangle_index : SV_GroupThreadID;
     uint thread_id : SV_DispatchThreadID;
     uint group_thread_id : SV_GroupThreadID;
+    uint3 group_id : SV_GroupID;
 };
 
 ///
@@ -124,8 +125,11 @@ groupshared float3 g_vertices[64];
 [numthreads(128, 1, 1)] void main(const Input input) {
     const GPURasterizeUBO ubo = tundra::load_ubo<GPURasterizeUBO>();
 
+    // #TODO: Bounds checking 💀
+    const uint meshlet_index = input.group_id.x * 128 + input.group_id.y;
+
     const VisibleMeshlet visible_meshlet = tundra::buffer_load<false, VisibleMeshlet>(
-        ubo.in_.visible_meshlets_srv, 0, input.meshlet_index);
+        ubo.in_.visible_meshlets_srv, 0, meshlet_index);
     const InstanceTransform instance_transform =
         tundra::buffer_load<false, InstanceTransform>(
             ubo.in_.mesh_instance_transforms_srv,
@@ -180,7 +184,7 @@ groupshared float3 g_vertices[64];
         const uint3 indices = g_indices[input.triangle_index];
         rasterize(
             ubo,
-            input.meshlet_index,
+            meshlet_index,
             input.triangle_index,
             g_vertices[indices[0]],
             g_vertices[indices[1]],
