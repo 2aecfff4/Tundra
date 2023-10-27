@@ -18,6 +18,7 @@ public:
 
 public:
     std::array<math::Vec4, config::NUM_PLANES> frustum_planes;
+    math::Vec3 camera_position;
     math::Mat4 world_to_view;
     u32 max_meshlet_count = 0;
 

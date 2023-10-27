@@ -627,6 +627,7 @@ RenderOutput hardware_rasterizer(
             common::culling::MeshletCullingInput {
                 .ubo_buffer = ubo_data.ubo_buffer,
                 .frustum_planes = frustum_planes,
+                .camera_position = input.camera_position,
                 .world_to_view = input.world_to_view,
                 .max_meshlet_count = max_meshlet_count,
                 .mesh_descriptors = input.gpu_mesh_descriptors,

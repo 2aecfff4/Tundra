@@ -12,6 +12,7 @@ struct MeshletCullingUBO {
     math::Mat4 projection = math::Mat4 {};
     math::Mat4 world_to_view = math::Mat4 {};
     std::array<math::Vec4, config::NUM_PLANES> frustum_planes = {};
+    math::Vec3 camera_position = {};
     float z_near = 0;
     u32 max_meshlet_count = 0;
 
@@ -113,6 +114,7 @@ inline constexpr u32 MAX_VISIBLE_MESHLETS_COUNT = (1u << 20u) * 4u;
             const ubo::MeshletCullingUBO ubo {
                 .world_to_view = input.world_to_view,
                 .frustum_planes = input.frustum_planes,
+                .camera_position = input.camera_position,
                 .max_meshlet_count = input.max_meshlet_count,
                 .in_ = {
                     .visible_mesh_instances_srv = visible_instances.get_srv(),

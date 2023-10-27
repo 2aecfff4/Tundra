@@ -11,13 +11,14 @@
 #include "visibility_buffer/inc/visible_meshlet.hlsli"
 
 ///
-#define NUM_THREADS_X 128
+#define NUM_THREADS_X 512
 
 ///
 struct MeshletCullingUBO {
     float4x4 projection;
     float4x4 world_to_view;
     float4 frustum_planes[6];
+    float3 camera_position;
     float z_near;
     uint max_meshlet_count;
 
@@ -85,7 +86,34 @@ struct Input {
 
             const float radius = meshlet.radius;
 
+            // #TODO: Frustum culling is a little bit broken.
+            // As you move forward, the frustum gets smaller and culls too much.
             is_visible = frustum_culling(ubo.frustum_planes, center, radius);
+
+            {
+                float3 cone_axis = float3(
+                    (int(((meshlet.cone_axis_and_cutoff & 0xFF000000u) >> 24u)) - 127) /
+                        127.0,
+                    (int(((meshlet.cone_axis_and_cutoff & 0x00FF0000u) >> 16u)) - 127) /
+                        127.0,
+                    (int(((meshlet.cone_axis_and_cutoff & 0x0000FF00u) >> 8u)) - 127) /
+                        127.0);
+
+                cone_axis = quat_rotate_vector(instance_transform.quat, cone_axis);
+
+                const float cone_cutoff =
+                    (int((meshlet.cone_axis_and_cutoff & 0x000000FF)) - 127) / 127.0;
+
+                const float3 direction = center - ubo.camera_position;
+                const float3 normalized_direction = normalize(direction);
+                const float distance = length(direction);
+
+                const bool cone_cull = dot(normalized_direction, cone_axis) >=
+                                       // cone_cutoff;
+                                       ((cone_cutoff * distance) + radius);
+
+                is_visible = is_visible && !cone_cull;
+            }
 
             if (is_visible && (ubo.in_.previous_frame_depth_texture_srv != 0xFFFFFFFF)) {
                 // #TODO: Depth culling
