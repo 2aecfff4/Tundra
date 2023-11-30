@@ -21,6 +21,7 @@ set(PRIVATE_HDRS
 
     src/renderer/config.h
     src/renderer/helpers.h
+    src/renderer/material_pass.h
     src/renderer/render_input_output.h
     src/renderer/renderer.h
     src/renderer/ubo.h
@@ -45,6 +46,7 @@ set(SRC
     src/renderer/software/software_rasterizer.cpp
 
     src/renderer/renderer.cpp
+    src/renderer/material_pass.cpp
 
     src/app.cpp
     src/main.cpp

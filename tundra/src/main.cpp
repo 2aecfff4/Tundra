@@ -5,6 +5,7 @@
 #include "core/std/unique_ptr.h"
 #include "core/typedefs.h"
 #include "globals/globals.h"
+#include "math/quat.h"
 #include "math/transform.h"
 #include "math/vector3.h"
 #include "meshlet_mesh.h"
@@ -30,7 +31,7 @@ namespace tundra {
 ///
 class MeshletApp : public App {
 private:
-    static constexpr usize NUM_INSTANCES = 6;
+    static constexpr usize NUM_INSTANCES = 1;
 
 private:
     renderer::frame_graph::FrameGraph m_frame_graph;
@@ -103,12 +104,15 @@ public:
         const f32 scene_radius = 4.f;
         for (usize i = 0; i < NUM_INSTANCES; ++i) {
             math::Transform transform = math::Transform::IDENTITY;
-            transform.position = math::Vec3 {
-                dist(gen) * scene_radius * 2 - scene_radius,
-                dist(gen) * scene_radius * 2 - scene_radius,
-                dist(gen) * scene_radius * 2 - scene_radius,
-            };
+            // transform.position = math::Vec3 {
+            //     dist(gen) * scene_radius * 2 - scene_radius,
+            //     dist(gen) * scene_radius * 2 - scene_radius,
+            //     dist(gen) * scene_radius * 2 - scene_radius,
+            // };
+
             transform.scale = 1.f;
+            // transform.rotation = math::Quat::from_angle(
+            //     math::to_radians(math::Vec3 { 0.f, 90.f, 0.f }));
 
             m_instances_transforms.push_back(transform);
             m_mesh_instances.push_back(renderer::MeshInstance {
@@ -116,7 +120,7 @@ public:
             });
         }
 
-        m_camera_transform.position -= math::Vec3 { 0, 0, -8 };
+        m_camera.translate(math::Vec3 { 0, 1, -8 });
 
         this->upload_mesh();
         this->create_pipelines();
@@ -439,7 +443,7 @@ protected:
             renderer::RenderInput {
                 .world_to_view = m_camera.view,
                 .view_to_clip = m_camera.projection,
-                .camera_position = m_camera_transform.position,
+                .camera_position = m_camera.position,
                 .view_size = view_size,
                 .near_plane = z_near,
                 .mesh_instances = m_mesh_instances,

@@ -59,6 +59,12 @@ inline constexpr const char* GPU_RASTERIZE_DEBUG_PASS_NAME =
 
 } // namespace software::passes
 
+namespace passes {
+
+inline constexpr const char* MATERIAL_PASS_NAME = "visibility_buffer/passes/material";
+
+} // namespace passes
+
 ///
 struct Compute {};
 

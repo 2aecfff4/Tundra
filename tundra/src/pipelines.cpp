@@ -49,6 +49,7 @@ namespace tundra::pipelines {
             { software::passes::GPU_RASTERIZE_INIT_NAME, Compute {} },
             { software::passes::GPU_RASTERIZE_PASS_NAME, Compute {} },
             { software::passes::GPU_RASTERIZE_DEBUG_PASS_NAME, Compute {} },
+            { passes::MATERIAL_PASS_NAME, Compute {} },
         };
 
     return pipelines;

@@ -131,6 +131,25 @@ struct MeshDescriptor {
         return tundra::buffer_load<true, float2>(
             mesh_data_buffer_srv, offset, vertex_buffer_index);
     }
+
+    float3 get_normal(const Meshlet meshlet, const uint vertex_id)
+    {
+        if ((vertex_buffer_layout & NORMALS_BIT) == 0) {
+            return float3(0.f / 0.f, 0.f / 0.f, 0.f / 0.f);
+        }
+
+        // vertices[meshlet_vertices[meshlets[meshlet_id].vertex_offset + vertex_id]]
+        const uint vertex_index_buffer_index = meshlet.vertex_offset + vertex_id;
+
+        const uint vertex_buffer_index = tundra::buffer_load<true, uint>(
+            mesh_data_buffer_srv, meshlet_vertices_offset, vertex_index_buffer_index);
+
+        const uint offset = this.vertex_buffer_offset +
+                            (MESH_POSITION_SIZE * this.vertex_count);
+
+        return tundra::buffer_load<true, float3>(
+            mesh_data_buffer_srv, offset, vertex_buffer_index);
+    }
 };
 
 #endif // TNDR_MESHLET_RENDERER_INC_MESH_DESCRIPTOR_H
