@@ -69,11 +69,10 @@ void App::loop() noexcept
 
         glfwPollEvents();
 
-        m_camera.update(m_camera_transform);
-
         const f32 delta_time = timer.get_delta_time();
         {
             TNDR_PROFILER_TRACE("App::loop::tick");
+            m_camera.update();
             this->tick(delta_time);
         }
 
@@ -143,35 +142,30 @@ void App::key_callback(GLFWwindow* window, int key, int scancode, int action, in
 
     const f32 speed = 0.2f;
     if ((action == GLFW_PRESS) || (action == GLFW_REPEAT)) {
+        const auto transform = app->m_camera.transform();
         switch (key) {
             case GLFW_KEY_W: {
-                app->m_camera_transform.position += math::Transform::FORWARD *
-                                                    math::Vec3 { speed };
+                app->m_camera.translate(transform.forward() * math::Vec3 { speed });
                 break;
             }
             case GLFW_KEY_S: {
-                app->m_camera_transform.position += math::Transform::FORWARD *
-                                                    math::Vec3 { -speed };
+                app->m_camera.translate(transform.forward() * math::Vec3 { -speed });
                 break;
             }
             case GLFW_KEY_A: {
-                app->m_camera_transform.position += math::Transform::RIGHT *
-                                                    math::Vec3 { -speed };
+                app->m_camera.translate(transform.right() * math::Vec3 { -speed });
                 break;
             }
             case GLFW_KEY_D: {
-                app->m_camera_transform.position += math::Transform::RIGHT *
-                                                    math::Vec3 { speed };
+                app->m_camera.translate(transform.right() * math::Vec3 { speed });
                 break;
             }
             case GLFW_KEY_Q: {
-                app->m_camera_transform.position += math::Transform::UP *
-                                                    math::Vec3 { -speed };
+                app->m_camera.translate(math::Transform::UP * math::Vec3 { -speed });
                 break;
             }
             case GLFW_KEY_E: {
-                app->m_camera_transform.position += math::Transform::UP *
-                                                    math::Vec3 { speed };
+                app->m_camera.translate(math::Transform::UP * math::Vec3 { speed });
                 break;
             }
             default: {
@@ -184,7 +178,13 @@ void App::key_callback(GLFWwindow* window, int key, int scancode, int action, in
 void App::cursor_pos_callback(GLFWwindow* window, double xpos, double ypos)
 {
     App* const app = static_cast<App*>(glfwGetWindowUserPointer(window));
-    app->m_mouse_delta -= math::Vec2 { xpos, ypos };
+    app->m_mouse_delta = app->m_mouse_previous_pos - math::Vec2 { xpos, ypos };
+    app->m_mouse_previous_pos = math::Vec2 { xpos, ypos };
+
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_1) == GLFW_PRESS) {
+        const math::Vec2 delta = app->m_mouse_delta;
+        app->m_camera.rotate_yaw_pitch(0.1f * delta.x, 0.1f * delta.y);
+    }
 }
 
 } // namespace tundra
