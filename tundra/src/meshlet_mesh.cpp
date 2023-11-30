@@ -311,12 +311,14 @@ void MeshletMesh::import(
         }
     }
 
-    meshoptimizer::optimize::optimize_vertex_cache_in_place(
-        core::as_span(indices), vertices.size());
-    meshoptimizer::optimize::optimize_overdraw_in_place(
-        core::as_span(indices), core::as_span(std::as_const(vertices)), 1.05f);
-    meshoptimizer::optimize::optimize_vertex_fetch_in_place(
-        core::as_span(indices), core::as_span(vertices));
+    // #TODO: This is incorrect.
+    // We only change the vertex positions without changing the rest of the vertex attributes.
+    // meshoptimizer::optimize::optimize_vertex_cache_in_place(
+    //     core::as_span(indices), vertices.size());
+    // meshoptimizer::optimize::optimize_overdraw_in_place(
+    //     core::as_span(indices), core::as_span(std::as_const(vertices)), 1.05f);
+    // meshoptimizer::optimize::optimize_vertex_fetch_in_place(
+    //     core::as_span(indices), core::as_span(vertices));
 
     constexpr usize max_vertices = 64;
     constexpr usize max_triangles = 128;
