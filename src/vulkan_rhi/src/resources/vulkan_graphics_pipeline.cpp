@@ -1,9 +1,13 @@
 #include "resources/vulkan_graphics_pipeline.h"
 #include "core/profiler.h"
+#include "core/std/utils.h"
+#include "core/std/variant.h"
 #include "managers/managers.h"
 #include "managers/vulkan_pipeline_cache_manager.h"
 #include "managers/vulkan_pipeline_layout_manager.h"
+#include "rhi/resources/graphics_pipeline.h"
 #include "rhi/resources/resource_tracker.h"
+#include "rhi/resources/shader.h"
 #include "vulkan_device.h"
 #include "vulkan_helpers.h"
 #include "vulkan_shader.h"
@@ -21,17 +25,26 @@ VulkanGraphicsPipeline::VulkanGraphicsPipeline(
     constexpr const char* shader_name = "main";
 
     core::Array<VkPipelineShaderStageCreateInfo> shader_stage_create_infos;
-    shader_stage_create_infos.reserve(
-        static_cast<usize>(create_info.vertex_shader.is_valid()) +
-        static_cast<usize>(create_info.fragment_shader.is_valid()));
+    const usize num_shaders = [&] {
+        return core::visit(
+            core::make_overload(
+                [&](const rhi::GraphicsPipelineShaders::VertexShaders& vs) {
+                    return 1 + static_cast<usize>(vs.fragment_shader.has_value());
+                },
+                [&](const rhi::GraphicsPipelineShaders::MeshShaders& ms) {
+                    return 1 + static_cast<usize>(ms.task_shader.has_value()) +
+                           static_cast<usize>(ms.fragment_shader.has_value());
+                }),
+            create_info.shaders);
+    }();
 
-    for (const rhi::ShaderHandle shader :
-         { create_info.vertex_shader, create_info.fragment_shader }) {
+    shader_stage_create_infos.reserve(num_shaders);
 
+    const auto visit_shader = [&](const rhi::ShaderHandle shader_handle) {
         const VkPipelineShaderStageCreateInfo shader_stage_create_info =
             managers.shader_manager
                 ->with(
-                    shader.get_handle(),
+                    shader_handle.get_handle(),
                     [](const VulkanShader& shader) {
                         return VkPipelineShaderStageCreateInfo {
                             .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -47,7 +60,26 @@ VulkanGraphicsPipeline::VulkanGraphicsPipeline(
 
         // #TODO: Maybe implement shader cache?
         shader_stage_create_infos.push_back(shader_stage_create_info);
-    }
+    };
+
+    core::visit(
+        core::make_overload(
+            [&](const rhi::GraphicsPipelineShaders::VertexShaders& vs) {
+                visit_shader(vs.vertex_shader);
+                if (vs.fragment_shader) {
+                    visit_shader(*vs.fragment_shader);
+                }
+            },
+            [&](const rhi::GraphicsPipelineShaders::MeshShaders& ms) {
+                if (ms.task_shader) {
+                    visit_shader(*ms.task_shader);
+                }
+                visit_shader(ms.mesh_shader);
+                if (ms.fragment_shader) {
+                    visit_shader(*ms.fragment_shader);
+                }
+            }),
+        create_info.shaders);
 
     // We don't use vertex input layouts, but Vulkan specs requires "pVertexInputState" to be a valid pointer.
     const VkPipelineVertexInputStateCreateInfo vertex_input_state_create_info {

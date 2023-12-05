@@ -1,6 +1,8 @@
 #include "vulkan_helpers.h"
 #include "core/std/option.h"
 #include "core/std/panic.h"
+#include "rhi/resources/shader.h"
+#include "vulkan/vulkan_core.h"
 #include "vulkan_device.h"
 #include "vulkan_instance.h"
 
@@ -488,9 +490,14 @@ VkShaderStageFlagBits map_shader_stage(const rhi::ShaderStage shader_stage) noex
             return VK_SHADER_STAGE_FRAGMENT_BIT;
         case rhi::ShaderStage::ComputeShader:
             return VK_SHADER_STAGE_COMPUTE_BIT;
+        case rhi::ShaderStage::TaskShader:
+            return VK_SHADER_STAGE_TASK_BIT_EXT;
+        case rhi::ShaderStage::MeshShader:
+            return VK_SHADER_STAGE_MESH_BIT_EXT;
+        default: {
+            core::panic("Invalid enum");
+        }
     }
-
-    core::panic("Invalid enum");
 }
 /////////////////////////////////////////////////////////////////////////////////////////
 // Graphics pipeline
@@ -853,7 +860,10 @@ AccessInfo get_access_info(const rhi::AccessFlags flag) noexcept
             return AccessInfo {
                 .access_flags = VK_ACCESS_UNIFORM_READ_BIT | VK_ACCESS_SHADER_READ_BIT,
                 .stage_flags = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
-                               VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
+                               VK_PIPELINE_STAGE_VERTEX_SHADER_BIT |
+                               // #TODO: This should be splitted.
+                               VK_PIPELINE_STAGE_TASK_SHADER_BIT_EXT |
+                               VK_PIPELINE_STAGE_MESH_SHADER_BIT_EXT,
                 .image_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             };
         case rhi::AccessFlags::SRV_COMPUTE:
@@ -897,7 +907,10 @@ AccessInfo get_access_info(const rhi::AccessFlags flag) noexcept
             return AccessInfo {
                 .access_flags = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT,
                 .stage_flags = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT |
-                               VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                               VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
+                               // #TODO: This should be splitted.
+                               VK_PIPELINE_STAGE_TASK_SHADER_BIT_EXT |
+                               VK_PIPELINE_STAGE_MESH_SHADER_BIT_EXT,
                 .image_layout = VK_IMAGE_LAYOUT_GENERAL,
             };
         case rhi::AccessFlags::UAV_COMPUTE:
@@ -1107,6 +1120,12 @@ VkPipelineStageFlags map_synchronization_stage(
     }
     if (contains(stage_mask, SynchronizationStage::FRAGMENT_SHADER)) {
         flags |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    }
+    if (contains(stage_mask, SynchronizationStage::TASK_SHADER)) {
+        flags |= VK_PIPELINE_STAGE_TASK_SHADER_BIT_EXT;
+    }
+    if (contains(stage_mask, SynchronizationStage::MESH_SHADER)) {
+        flags |= VK_PIPELINE_STAGE_MESH_SHADER_BIT_EXT;
     }
     if (contains(stage_mask, SynchronizationStage::COMPUTE_SHADER)) {
         flags |= VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;

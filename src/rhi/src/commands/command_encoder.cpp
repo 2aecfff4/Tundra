@@ -196,6 +196,20 @@ void CommandEncoder::draw_indexed_indirect_count(
     });
 }
 
+void CommandEncoder::draw_mesh_tasks_indirect(
+    const BufferHandle buffer,
+    const u64 offset,
+    const u32 draw_count,
+    const u32 stride) noexcept
+{
+    this->construct_command(commands::DrawMeshTasksIndirectCommand {
+        .buffer = buffer,
+        .offset = offset,
+        .draw_count = draw_count,
+        .stride = stride,
+    });
+}
+
 void CommandEncoder::dispatch(
     const ComputePipelineHandle pipeline,
     const u32 group_count_x,
@@ -305,8 +319,7 @@ void CommandEncoder::reset() noexcept
 {
     if (this->has_commands()) {
         commands::BaseCommand* TNDR_RESTRICT command = m_root_command;
-        [[likely]] while (command != nullptr)
-        {
+        [[likely]] while (command != nullptr) {
             switch (command->get_type()) {
 #define CASE(e)                                                                          \
     case commands::CommandType::e: {                                                     \

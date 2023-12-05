@@ -17,9 +17,14 @@ private:
     core::Array<core::SharedPtr<VulkanDevice>> m_devices;
 
 public:
+    struct SupportedFeatures {
+        bool mesh_shaders = false;
+    };
+
     struct Device {
         VkPhysicalDevice physical_device;
         VkPhysicalDeviceType device_type;
+        SupportedFeatures supported_features;
 
         struct Queues {
             u32 graphics;

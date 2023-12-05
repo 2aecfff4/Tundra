@@ -5,6 +5,7 @@
 #include "core/std/containers/string.h"
 #include "core/std/hash.h"
 #include "core/std/option.h"
+#include "core/std/variant.h"
 #include "core/utils/enum_flags.h"
 #include "math/vector2.h"
 #include "rhi/resources/texture.h"
@@ -175,12 +176,10 @@ struct RHI_API BlendOp {
     };
 
     ///
-    struct Min {
-    };
+    struct Min {};
 
     ///
-    struct Max {
-    };
+    struct Max {};
 
     ///
     using Op = core::Variant<Add, Subtract, ReverseSubtract, Min, Max>;
@@ -276,14 +275,33 @@ struct RHI_API MultisamplingState {
 };
 
 ///
+struct RHI_API GraphicsPipelineShaders {
+
+    ///
+    struct VertexShaders {
+        ShaderHandle vertex_shader;
+        core::Option<ShaderHandle> fragment_shader;
+    };
+
+    ///
+    struct MeshShaders {
+        core::Option<ShaderHandle> task_shader;
+        ShaderHandle mesh_shader;
+        core::Option<ShaderHandle> fragment_shader;
+    };
+
+    ///
+    using Kind = core::Variant<VertexShaders, MeshShaders>;
+};
+
+///
 struct RHI_API GraphicsPipelineCreateInfo {
     InputAssemblyState input_assembly;
     RasterizerState rasterizer_state;
     DepthStencilDesc depth_stencil;
     ColorBlendState color_blend_state;
     core::Option<MultisamplingState> multisampling_state;
-    ShaderHandle vertex_shader;
-    ShaderHandle fragment_shader;
+    GraphicsPipelineShaders::Kind shaders;
     core::String name;
 };
 

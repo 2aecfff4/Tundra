@@ -390,6 +390,21 @@ void Device::cmd_draw_indexed_indirect(
     m_table.cmd_draw_indexed_indirect(command_buffer, buffer, offset, draw_count, stride);
 }
 
+void Device::cmd_draw_mesh_tasks_indirect(
+    const VkCommandBuffer command_buffer,
+    const VkBuffer buffer,
+    const u64 offset,
+    const u32 draw_count,
+    const u32 stride) const noexcept
+{
+    m_table.cmd_draw_mesh_tasks_indirect(
+        command_buffer, //
+        buffer,
+        offset,
+        draw_count,
+        stride);
+}
+
 void Device::cmd_end_render_pass(const VkCommandBuffer command_buffer) const noexcept
 {
     m_table.cmd_end_render_pass(command_buffer);

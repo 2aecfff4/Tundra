@@ -44,6 +44,7 @@ private:
         PFN_vkCmdDrawIndexed cmd_draw_indexed;
         PFN_vkCmdDrawIndexedIndirect cmd_draw_indexed_indirect;
         PFN_vkCmdDrawIndirect cmd_draw_indirect;
+        PFN_vkCmdDrawMeshTasksIndirectEXT cmd_draw_mesh_tasks_indirect;
         PFN_vkCmdEndQuery cmd_end_query;
         PFN_vkCmdEndRenderPass cmd_end_render_pass;
         PFN_vkCmdEndRendering cmd_end_rendering;
@@ -297,6 +298,14 @@ public:
 
     /// https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/vkCmdDrawIndexedIndirect.html
     void cmd_draw_indexed_indirect(
+        const VkCommandBuffer command_buffer,
+        const VkBuffer buffer,
+        const u64 offset,
+        const u32 draw_count,
+        const u32 stride) const noexcept;
+
+    /// https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/vkCmdDrawMeshTasksIndirectEXT.html
+    void cmd_draw_mesh_tasks_indirect(
         const VkCommandBuffer command_buffer,
         const VkBuffer buffer,
         const u64 offset,

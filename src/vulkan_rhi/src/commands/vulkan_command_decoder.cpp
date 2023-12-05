@@ -91,6 +91,9 @@ VulkanCommandDecoder::VulkanCommandDecoder(
         [&](const rhi::commands::DrawIndexedIndirectCountCommand& cmd) {
             this->draw_indexed_indirect_count(cmd);
         },
+        [&](const rhi::commands::DrawMeshTasksIndirectCommand& cmd) {
+            this->draw_mesh_tasks_indirect(cmd);
+        },
         [&](const rhi::commands::DispatchCommand& cmd) { //
             this->dispatch(cmd);
         },
@@ -644,6 +647,32 @@ void VulkanCommandDecoder::draw_indexed_indirect_count(
         count_buffer,
         cmd.count_buffer_offset,
         cmd.max_draw_count,
+        cmd.stride);
+}
+
+void VulkanCommandDecoder::draw_mesh_tasks_indirect(
+    const rhi::commands::DrawMeshTasksIndirectCommand& cmd) noexcept
+{
+    TNDR_PROFILER_TRACE_IF(
+        PROFILE_DECODER, "VulkanCommandDecoder::draw_mesh_tasks_indirect");
+
+    m_resources.add_reference(
+        *m_managers.resource_tracker, cmd.buffer.get_handle().get_id());
+
+    const VkBuffer indirect_buffer =
+        m_managers.buffer_manager
+            ->with(
+                cmd.buffer.get_handle(),
+                [](const VulkanBuffer& buffer) { return buffer.get_buffer(); })
+            .value_or_else([](const auto&) -> VkBuffer {
+                core::panic("`DrawMeshTasksIndirectCommand::buffer` is not alive.");
+            });
+
+    m_loader_device.cmd_draw_mesh_tasks_indirect(
+        m_bundle.command_buffer, //
+        indirect_buffer,
+        cmd.offset,
+        cmd.draw_count,
         cmd.stride);
 }
 

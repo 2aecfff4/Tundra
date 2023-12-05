@@ -140,6 +140,16 @@ public:
         const u32 max_draw_count,
         const u32 stride) noexcept;
 
+    /// @param buffer The buffer containing draw parameters.
+    /// @param offset The byte offset into `buffer` where parameters begin.
+    /// @param draw_count The number of draws to execute. Can be zero.
+    /// @param stride The byte stride between successive sets of draw parameters.
+    void draw_mesh_tasks_indirect(
+        const BufferHandle buffer,
+        const u64 offset,
+        const u32 draw_count,
+        const u32 stride) noexcept;
+
     /// Dispatch compute work items.
     ///
     /// @param pipeline Valid compute pipeline handle.
@@ -237,8 +247,7 @@ public:
     {
         if (this->has_commands()) {
             const commands::BaseCommand* TNDR_RESTRICT command = m_root_command;
-            [[likely]] while (command != nullptr)
-            {
+            [[likely]] while (command != nullptr) {
                 switch (command->get_type()) {
 #define CASE(e)                                                                          \
     case commands::CommandType::e: {                                                     \

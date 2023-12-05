@@ -29,6 +29,7 @@ enum class CommandType : u8 {
     DrawIndexedInstanced,
     DrawIndexedIndirect,
     DrawIndexedIndirectCount,
+    DrawMeshTasksIndirect,
     Dispatch,
     DispatchIndirect,
     BufferCopy,
@@ -77,27 +78,23 @@ struct Command : public BaseCommand {
 // Commands
 
 struct RHI_API BeginCommandBufferCommand
-    : public Command<CommandType::BeginCommandBuffer> {
-};
+    : public Command<CommandType::BeginCommandBuffer> {};
 
-struct RHI_API EndCommandBufferCommand : public Command<CommandType::EndCommandBuffer> {
-};
+struct RHI_API EndCommandBufferCommand : public Command<CommandType::EndCommandBuffer> {};
 
 struct RHI_API BeginRegionCommand : public Command<CommandType::BeginRegion> {
     core::String name;
     math::Vec4 color;
 };
 
-struct RHI_API EndRegionCommand : public Command<CommandType::EndRegion> {
-};
+struct RHI_API EndRegionCommand : public Command<CommandType::EndRegion> {};
 
 struct RHI_API BeginRenderPassCommand : public Command<CommandType::BeginRenderPass> {
     Rect render_area;
     RenderPass render_pass;
 };
 
-struct RHI_API EndRenderPassCommand : public Command<CommandType::EndRenderPass> {
-};
+struct RHI_API EndRenderPassCommand : public Command<CommandType::EndRenderPass> {};
 
 struct RHI_API PushConstantsCommand : public Command<CommandType::PushConstants> {
     rhi::BufferHandle ubo_buffer;
@@ -162,6 +159,14 @@ struct RHI_API DrawIndexedIndirectCountCommand
     BufferHandle count_buffer;
     u64 count_buffer_offset;
     u32 max_draw_count;
+    u32 stride;
+};
+
+struct RHI_API DrawMeshTasksIndirectCommand
+    : public Command<CommandType::DrawMeshTasksIndirect> {
+    BufferHandle buffer;
+    u64 offset;
+    u32 draw_count;
     u32 stride;
 };
 

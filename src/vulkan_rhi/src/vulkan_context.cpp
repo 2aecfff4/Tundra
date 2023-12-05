@@ -111,10 +111,20 @@ void VulkanContext::create_device() noexcept
         .maintenance4 = true,
     };
 
+    VkPhysicalDeviceMeshShaderFeaturesEXT physical_device_mesh_shader_features = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT,
+        .taskShader = true,
+        .meshShader = true,
+    };
+
     core::Array<const char*> device_extensions_names {
         loader::khr::Swapchain::name(),
         VK_EXT_SHADER_IMAGE_ATOMIC_INT64_EXTENSION_NAME,
     };
+
+    if (device.supported_features.mesh_shaders) {
+        device_extensions_names.push_back(VK_EXT_MESH_SHADER_EXTENSION_NAME);
+    }
 
     VkDeviceCreateInfo device_create_info {
         .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
@@ -130,6 +140,12 @@ void VulkanContext::create_device() noexcept
         physical_device_shader_image_atomic_int64_features,
         physical_device_vulkan12_features,
         physical_device_vulkan13_features);
+
+    if (device.supported_features.mesh_shaders) {
+        helpers::chain_structs(
+            physical_device_vulkan13_features, //
+            physical_device_mesh_shader_features);
+    }
 
     const loader::Device loader_device = vulkan_map_result(
         m_instance->get_instance().create_device(
@@ -260,6 +276,16 @@ core::Array<VulkanContext::Device> VulkanContext::enumerate_devices() noexcept
             continue;
         }
 
+        SupportedFeatures supported_features;
+        supported_features.mesh_shaders = std::any_of(
+            device_extensions.begin(),
+            device_extensions.end(),
+            [](const VkExtensionProperties& extension) {
+                return std::strcmp(
+                           extension.extensionName, //
+                           VK_EXT_MESH_SHADER_EXTENSION_NAME) == 0;
+            });
+
         // Check if the device supports all necessary features.
         {
             VkPhysicalDeviceDescriptorIndexingFeatures descriptor_indexing_features {
@@ -378,6 +404,7 @@ core::Array<VulkanContext::Device> VulkanContext::enumerate_devices() noexcept
         devices.push_back(VulkanContext::Device {
             .physical_device = physical_device,
             .device_type = physical_device_properties.properties.deviceType,
+            .supported_features = supported_features,
             .queues =
                 VulkanContext::Device::Queues {
                     .graphics = *graphics_queue,

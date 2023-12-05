@@ -11,6 +11,8 @@ enum class ShaderStage : u8 {
     VertexShader,
     FragmentShader,
     ComputeShader,
+    TaskShader,
+    MeshShader,
     Invalid,
 };
 

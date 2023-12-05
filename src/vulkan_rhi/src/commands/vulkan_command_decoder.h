@@ -5,6 +5,7 @@
 #include "core/std/tuple.h"
 #include "loader/device.h"
 #include "managers/vulkan_command_buffer_manager.h"
+#include "rhi/commands/commands.h"
 #include "rhi/resources/index_buffer.h"
 #include "rhi/resources/render_pass.h"
 #include "vulkan_barrier.h"
@@ -96,6 +97,8 @@ private:
         const rhi::commands::DrawIndexedIndirectCommand& cmd) noexcept;
     void draw_indexed_indirect_count(
         const rhi::commands::DrawIndexedIndirectCountCommand& cmd) noexcept;
+    void draw_mesh_tasks_indirect(
+        const rhi::commands::DrawMeshTasksIndirectCommand& cmd) noexcept;
     void dispatch(const rhi::commands::DispatchCommand& cmd) noexcept;
     void dispatch_indirect(const rhi::commands::DispatchIndirectCommand& cmd) noexcept;
     void buffer_copy(const rhi::commands::BufferCopyCommand& cmd) noexcept;
