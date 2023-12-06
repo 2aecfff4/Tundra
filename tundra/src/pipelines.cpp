@@ -1,4 +1,5 @@
 #include "pipelines.h"
+#include "fmt/format.h"
 
 namespace tundra::pipelines {
 
@@ -44,11 +45,58 @@ namespace tundra::pipelines {
                         rhi::ColorBlendState {
                             .attachments = color_blend_attachments,
                         },
+                    .shaders =
+                        GraphicShaders::VertexShaders {
+                            .vertex_shader = fmt::format(
+                                "{}.{}", hardware::passes::VISIBILITY_BUFFER_PASS, "vert"),
+                            .fragment_shader = fmt::format(
+                                "{}.{}", hardware::passes::VISIBILITY_BUFFER_PASS, "frag"),
+                        },
                 },
             },
             { software::passes::GPU_RASTERIZE_INIT_NAME, Compute {} },
             { software::passes::GPU_RASTERIZE_PASS_NAME, Compute {} },
             { software::passes::GPU_RASTERIZE_DEBUG_PASS_NAME, Compute {} },
+
+            { mesh_shaders::passes::INSTANCE_CULLING_INIT_NAME, Compute {} },
+            { mesh_shaders::passes::INSTANCE_CULLING_NAME, Compute {} },
+            { mesh_shaders::passes::TASK_DISPATCH_COMMAND_GENERATOR_NAME, Compute {} },
+            {
+                mesh_shaders::passes::MESH_SHADER_NAME,
+                Graphics {
+                    .input_assembly =
+                        rhi::InputAssemblyState {
+                            .primitive_type = rhi::PrimitiveType::Triangle,
+                        },
+                    .rasterizer_state =
+                        rhi::RasterizerState {
+                            .polygon_mode = rhi::PolygonMode::Fill,
+                            .front_face = rhi::FrontFace::CounterClockwise,
+                        },
+                    .depth_stencil =
+                        rhi::DepthStencilDesc {
+                            .depth_test =
+                                rhi::DepthTest {
+                                    .op = rhi::CompareOp::GreaterOrEqual,
+                                    .write = true,
+                                },
+                            .format = rhi::TextureFormat::D32_FLOAT_S8_UINT,
+                        },
+                    .color_blend_state =
+                        rhi::ColorBlendState {
+                            .attachments = color_blend_attachments,
+                        },
+                    .shaders =
+                        GraphicShaders::MeshShaders {
+                            .task_shader = fmt::format(
+                                "{}.{}", mesh_shaders::passes::MESH_SHADER_NAME, "task"),
+                            .mesh_shader = fmt::format(
+                                "{}.{}", mesh_shaders::passes::MESH_SHADER_NAME, "mesh"),
+                            .fragment_shader = fmt::format(
+                                "{}.{}", mesh_shaders::passes::MESH_SHADER_NAME, "frag"),
+                        },
+                },
+            },
             { passes::MATERIAL_PASS_NAME, Compute {} },
         };
 

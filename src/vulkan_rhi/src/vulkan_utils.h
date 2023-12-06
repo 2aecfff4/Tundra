@@ -21,7 +21,10 @@ auto vulkan_map_result(Exp&& exp, const char* msg) noexcept
     using T = std::decay_t<Exp>;
 
     if (!exp) {
-        core::panic("{}. Error: `{}`", msg, vk_result_to_str(exp.error()));
+        core::panic(
+            "{}. Error: `{}`", //
+            msg,
+            vk_result_to_str(exp.error()));
     }
 
     if constexpr (!std::is_void_v<typename T::ValueType>) {

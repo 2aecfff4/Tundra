@@ -9,6 +9,7 @@ set(PUBLIC_HDRS
     include/rhi/commands/commands.h
     include/rhi/commands/dispatch_indirect.h
     include/rhi/commands/draw_indirect.h
+    include/rhi/commands/draw_mesh_tasks_indirect.h
     include/rhi/commands/push_constants.h
 
     include/rhi/resources/access_flags.h

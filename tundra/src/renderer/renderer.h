@@ -12,6 +12,7 @@ namespace tundra::renderer {
 enum class RendererType : u8 {
     Hardware,
     Software,
+    MeshShaders,
 };
 
 ///

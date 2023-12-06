@@ -1,5 +1,6 @@
 #pragma once
 #include "core/std/containers/array.h"
+#include "core/std/containers/string.h"
 #include "core/std/variant.h"
 #include "rhi/resources/graphics_pipeline.h"
 #include <utility>
@@ -59,6 +60,23 @@ inline constexpr const char* GPU_RASTERIZE_DEBUG_PASS_NAME =
 
 } // namespace software::passes
 
+///
+namespace mesh_shaders::passes {
+
+inline constexpr const char* INSTANCE_CULLING_INIT_NAME =
+    "visibility_buffer/mesh_shaders/instance_culling_init";
+
+inline constexpr const char* INSTANCE_CULLING_NAME =
+    "visibility_buffer/mesh_shaders/instance_culling";
+
+inline constexpr const char* TASK_DISPATCH_COMMAND_GENERATOR_NAME =
+    "visibility_buffer/mesh_shaders/task_dispatch_command_generator";
+
+inline constexpr const char* MESH_SHADER_NAME =
+    "visibility_buffer/mesh_shaders/mesh_shader";
+
+} // namespace mesh_shaders::passes
+
 namespace passes {
 
 inline constexpr const char* MATERIAL_PASS_NAME = "visibility_buffer/passes/material";
@@ -68,6 +86,23 @@ inline constexpr const char* MATERIAL_PASS_NAME = "visibility_buffer/passes/mate
 ///
 struct Compute {};
 
+struct GraphicShaders {
+    ///
+    struct VertexShaders {
+        core::String vertex_shader;
+        core::Option<core::String> fragment_shader;
+    };
+
+    ///
+    struct MeshShaders {
+        core::Option<core::String> task_shader;
+        core::String mesh_shader;
+        core::Option<core::String> fragment_shader;
+    };
+
+    using Type = core::Variant<VertexShaders, MeshShaders>;
+};
+
 ///
 struct Graphics {
     rhi::InputAssemblyState input_assembly;
@@ -75,6 +110,7 @@ struct Graphics {
     rhi::DepthStencilDesc depth_stencil;
     rhi::ColorBlendState color_blend_state;
     core::Option<rhi::MultisamplingState> multisampling_state;
+    GraphicShaders::Type shaders;
 };
 
 ///

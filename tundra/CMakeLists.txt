@@ -14,6 +14,11 @@ set(PRIVATE_HDRS
 
     src/renderer/hardware/hardware_rasterizer.h
 
+    src/renderer/mesh_shaders/instance_culling.h
+    src/renderer/mesh_shaders/mesh_shader_renderer.h
+    src/renderer/mesh_shaders/mesh_shader.h
+    src/renderer/mesh_shaders/task_dispatch_command_generator.h
+
     src/renderer/software/passes/gpu_rasterize_debug_pass.h
     src/renderer/software/passes/gpu_rasterizer_init.h
     src/renderer/software/passes/gpu_rasterizer.h
@@ -39,6 +44,11 @@ set(SRC
     src/renderer/hardware/culling/index_buffer_generator_init.cpp
 
     src/renderer/hardware/hardware_rasterizer.cpp
+
+    src/renderer/mesh_shaders/instance_culling.cpp
+    src/renderer/mesh_shaders/mesh_shader_renderer.cpp
+    src/renderer/mesh_shaders/mesh_shader.cpp
+    src/renderer/mesh_shaders/task_dispatch_command_generator.cpp
 
     src/renderer/software/passes/gpu_rasterize_debug_pass.cpp
     src/renderer/software/passes/gpu_rasterizer_init.cpp

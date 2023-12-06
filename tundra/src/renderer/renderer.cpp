@@ -1,6 +1,7 @@
 #include "renderer/renderer.h"
 #include "core/std/panic.h"
 #include "renderer/hardware/hardware_rasterizer.h"
+#include "renderer/mesh_shaders/mesh_shader_renderer.h"
 #include "renderer/software/software_rasterizer.h"
 
 namespace tundra::renderer {
@@ -16,6 +17,9 @@ namespace tundra::renderer {
         }
         case RendererType::Software: {
             return software::software_rasterizer(fg, input);
+        }
+        case RendererType::MeshShaders: {
+            return mesh_shaders::mesh_shader_renderer(fg, input);
         }
         default: {
             core::unreachable();
