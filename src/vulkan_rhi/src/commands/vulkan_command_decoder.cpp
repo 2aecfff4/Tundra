@@ -28,6 +28,7 @@ VulkanCommandDecoder::VulkanCommandDecoder(
     , m_managers(managers)
     , m_barrier(m_raw_device)
     , m_device_limits(m_raw_device->get_device_limits())
+    , m_supports_mesh_shaders(raw_device->supported_features().mesh_shaders)
 {
     m_cache.pipeline_layout = m_managers.pipeline_layout_manager->get_pipeline_layout()
                                   .pipeline_layout;
@@ -174,10 +175,10 @@ void VulkanCommandDecoder::begin_render_pass(
     // - `VK_IMAGE_LAYOUT_GENERAL`
     // and both layouts are compatible with `VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT`.
     // The same thing happen with depth stencil attachments.
-    const auto check_is_layout_allowed = [](const rhi::AccessFlags access_flags,
-                                            const rhi::TextureUsageFlags texture_usage) {
+    const auto check_is_layout_allowed = [&](const rhi::AccessFlags access_flags,
+                                             const rhi::TextureUsageFlags texture_usage) {
         const VkImageLayout current_layout = helpers::map_access_flags_to_image_layout(
-            access_flags);
+            access_flags, m_supports_mesh_shaders);
 
         if (!helpers::is_layout_allowed(current_layout, texture_usage)) {
             core::panic("{} is not allowed with: {}.", current_layout, texture_usage);
@@ -264,7 +265,7 @@ void VulkanCommandDecoder::begin_render_pass(
 
             resolve_mode = VK_RESOLVE_MODE_AVERAGE_BIT;
             resolve_image_layout = helpers::map_access_flags_to_image_layout(
-                resolve_texture.texture_access);
+                resolve_texture.texture_access, m_supports_mesh_shaders);
         }
 
         color_attachments[color_attachments_count] = VkRenderingAttachmentInfo {
@@ -272,7 +273,7 @@ void VulkanCommandDecoder::begin_render_pass(
             .pNext = nullptr,
             .imageView = image_view,
             .imageLayout = helpers::map_access_flags_to_image_layout(
-                color_attachment.texture_access),
+                color_attachment.texture_access, m_supports_mesh_shaders),
             .resolveMode = resolve_mode,
             .resolveImageView = resolve_image_view,
             .resolveImageLayout = resolve_image_layout,
@@ -364,7 +365,7 @@ void VulkanCommandDecoder::begin_render_pass(
 
             resolve_mode = VK_RESOLVE_MODE_AVERAGE_BIT;
             resolve_image_layout = helpers::map_access_flags_to_image_layout(
-                resolve_texture.texture_access);
+                resolve_texture.texture_access, m_supports_mesh_shaders);
         }
 
         depth_stencil_attachment = VkRenderingAttachmentInfo {
@@ -372,7 +373,7 @@ void VulkanCommandDecoder::begin_render_pass(
             .pNext = nullptr,
             .imageView = image_view,
             .imageLayout = helpers::map_access_flags_to_image_layout(
-                depth_stencil_attachment_ref.texture_access),
+                depth_stencil_attachment_ref.texture_access, m_supports_mesh_shaders),
             .resolveMode = resolve_mode,
             .resolveImageView = resolve_image_view,
             .resolveImageLayout = resolve_image_layout,
@@ -793,9 +794,9 @@ void VulkanCommandDecoder::texture_copy(
             });
 
     const VkImageLayout src_image_layout = helpers::map_access_flags_to_image_layout(
-        cmd.src_texture_access);
+        cmd.src_texture_access, m_supports_mesh_shaders);
     const VkImageLayout dst_image_layout = helpers::map_access_flags_to_image_layout(
-        cmd.dst_texture_access);
+        cmd.dst_texture_access, m_supports_mesh_shaders);
 
     core::Array<VkImageCopy> regions;
     regions.reserve(cmd.regions.size());
@@ -909,7 +910,7 @@ void VulkanCommandDecoder::buffer_texture_copy(
             });
 
     const VkImageLayout dst_image_layout = helpers::map_access_flags_to_image_layout(
-        cmd.texture_access);
+        cmd.texture_access, m_supports_mesh_shaders);
 
     core::Array<VkBufferImageCopy> regions;
     regions.reserve(cmd.regions.size());
@@ -964,7 +965,7 @@ void VulkanCommandDecoder::texture_buffer_copy(
             });
 
     const VkImageLayout src_image_layout = helpers::map_access_flags_to_image_layout(
-        cmd.texture_access);
+        cmd.texture_access, m_supports_mesh_shaders);
 
     const VkBuffer dst_buffer =
         m_managers.buffer_manager

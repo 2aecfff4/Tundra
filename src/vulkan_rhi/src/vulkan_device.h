@@ -9,6 +9,7 @@
 #include "loader/extensions/khr/swapchain.h"
 #include "managers/managers.h"
 #include "rhi/resources/handle.h"
+#include "vulkan_context.h"
 
 namespace tundra::rhi {
 struct SwapchainCreateInfo;
@@ -62,6 +63,7 @@ private:
     DeviceProperties m_device_properties;
     DeviceLimits m_device_limits;
     Extensions m_extensions;
+    SupportedFeatures m_supported_features;
 
 public:
     VulkanRawDevice(
@@ -70,7 +72,8 @@ public:
         const VkPhysicalDevice physical_device,
         VulkanQueues queues,
         DeviceProperties device_properties,
-        DeviceLimits device_limits) noexcept;
+        DeviceLimits device_limits,
+        SupportedFeatures supported_features) noexcept;
     ~VulkanRawDevice() noexcept;
 
 public:
@@ -90,6 +93,7 @@ public:
     [[nodiscard]] const VulkanQueues& get_queues() const noexcept;
     [[nodiscard]] const DeviceProperties& get_device_properties() const noexcept;
     [[nodiscard]] const DeviceLimits& get_device_limits() const noexcept;
+    [[nodiscard]] const SupportedFeatures& supported_features() const noexcept;
 
 private:
     friend class VulkanDevice;
@@ -111,7 +115,8 @@ public:
         const VkPhysicalDevice physical_device,
         VulkanQueues queues,
         DeviceProperties device_properties,
-        DeviceLimits device_limits) noexcept;
+        DeviceLimits device_limits,
+        SupportedFeatures supported_features) noexcept;
 
     ~VulkanDevice() noexcept;
 

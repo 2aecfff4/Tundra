@@ -15,6 +15,7 @@ class VulkanTexture;
 class VulkanBarrier {
 private:
     core::SharedPtr<VulkanRawDevice> m_raw_device;
+    bool m_supports_mesh_shaders;
 
 private:
     core::Array<VkBufferMemoryBarrier> m_buffer_barriers;

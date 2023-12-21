@@ -107,6 +107,7 @@ void VulkanContext::create_device() noexcept
 
     VkPhysicalDeviceVulkan13Features physical_device_vulkan13_features {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+        .synchronization2 = true,
         .dynamicRendering = true,
         .maintenance4 = true,
     };
@@ -197,7 +198,8 @@ void VulkanContext::create_device() noexcept
         device.physical_device,
         queues,
         device_properties,
-        device_limits));
+        device_limits,
+        device.supported_features));
 }
 
 core::Array<VulkanContext::Device> VulkanContext::enumerate_devices() noexcept

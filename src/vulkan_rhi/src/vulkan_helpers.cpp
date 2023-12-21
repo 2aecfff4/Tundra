@@ -829,7 +829,8 @@ void end_region(
 /////////////////////////////////////////////////////////////////////////////////////////
 // Barriers
 
-AccessInfo get_access_info(const rhi::AccessFlags flag) noexcept
+AccessInfo get_access_info(
+    const rhi::AccessFlags flag, const bool supports_mesh_shaders) noexcept
 {
     switch (flag) {
         case rhi::AccessFlags::NONE:
@@ -856,16 +857,19 @@ AccessInfo get_access_info(const rhi::AccessFlags flag) noexcept
                 .stage_flags = VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
                 .image_layout = VK_IMAGE_LAYOUT_UNDEFINED,
             };
-        case rhi::AccessFlags::SRV_GRAPHICS:
+        case rhi::AccessFlags::SRV_GRAPHICS: {
+            VkPipelineStageFlags stage_flags = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
+                                               VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
+            if (supports_mesh_shaders) {
+                stage_flags |= VK_PIPELINE_STAGE_TASK_SHADER_BIT_EXT |
+                               VK_PIPELINE_STAGE_MESH_SHADER_BIT_EXT;
+            }
             return AccessInfo {
                 .access_flags = VK_ACCESS_UNIFORM_READ_BIT | VK_ACCESS_SHADER_READ_BIT,
-                .stage_flags = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
-                               VK_PIPELINE_STAGE_VERTEX_SHADER_BIT |
-                               // #TODO: This should be splitted.
-                               VK_PIPELINE_STAGE_TASK_SHADER_BIT_EXT |
-                               VK_PIPELINE_STAGE_MESH_SHADER_BIT_EXT,
+                .stage_flags = stage_flags,
                 .image_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             };
+        }
         case rhi::AccessFlags::SRV_COMPUTE:
             return AccessInfo {
                 .access_flags = VK_ACCESS_UNIFORM_READ_BIT | VK_ACCESS_SHADER_READ_BIT,
@@ -903,16 +907,20 @@ AccessInfo get_access_info(const rhi::AccessFlags flag) noexcept
                 .stage_flags = 0,
                 .image_layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
             };
-        case rhi::AccessFlags::UAV_GRAPHICS:
+        case rhi::AccessFlags::UAV_GRAPHICS: {
+            VkPipelineStageFlags stage_flags = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT |
+                                               VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+            if (supports_mesh_shaders) {
+                stage_flags |= VK_PIPELINE_STAGE_TASK_SHADER_BIT_EXT |
+                               VK_PIPELINE_STAGE_MESH_SHADER_BIT_EXT;
+            }
+
             return AccessInfo {
                 .access_flags = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT,
-                .stage_flags = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT |
-                               VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
-                               // #TODO: This should be splitted.
-                               VK_PIPELINE_STAGE_TASK_SHADER_BIT_EXT |
-                               VK_PIPELINE_STAGE_MESH_SHADER_BIT_EXT,
+                .stage_flags = stage_flags,
                 .image_layout = VK_IMAGE_LAYOUT_GENERAL,
             };
+        }
         case rhi::AccessFlags::UAV_COMPUTE:
             return AccessInfo {
                 .access_flags = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT,
@@ -949,7 +957,8 @@ AccessInfo get_access_info(const rhi::AccessFlags flag) noexcept
     core::panic("Invalid enum");
 }
 
-VkImageLayout map_access_flags_to_image_layout(rhi::AccessFlags flags) noexcept
+VkImageLayout map_access_flags_to_image_layout(
+    rhi::AccessFlags flags, const bool supports_mesh_shaders) noexcept
 {
     core::Option<VkImageLayout> image_layout = std::nullopt;
     if (flags != rhi::AccessFlags::NONE) {
@@ -957,7 +966,8 @@ VkImageLayout map_access_flags_to_image_layout(rhi::AccessFlags flags) noexcept
             const rhi::AccessFlags flag = static_cast<rhi::AccessFlags>(1 << i);
 
             if (contains(flags, flag)) {
-                const AccessInfo access_info = get_access_info(flag);
+                const AccessInfo access_info = get_access_info(
+                    flag, supports_mesh_shaders);
 
                 if (image_layout) {
                     const VkImageLayout new_layout = access_info.image_layout;

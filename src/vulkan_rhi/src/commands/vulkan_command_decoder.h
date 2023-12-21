@@ -58,6 +58,7 @@ private:
     Managers& m_managers;
     VulkanBarrier m_barrier;
     const DeviceLimits& m_device_limits;
+    bool m_supports_mesh_shaders;
 
     struct {
         rhi::GraphicsPipelineHandle current_graphics_pipeline;

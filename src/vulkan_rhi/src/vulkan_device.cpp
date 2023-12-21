@@ -1,4 +1,5 @@
 #include "vulkan_device.h"
+
 #include "core/logger.h"
 #include "core/profiler.h"
 #include "core/std/panic.h"
@@ -16,6 +17,7 @@
 #include "resources/vulkan_texture.h"
 #include "resources/vulkan_texture_view.h"
 #include "vulkan_instance.h"
+#include <utility>
 
 namespace tundra::vulkan_rhi {
 
@@ -38,14 +40,16 @@ VulkanRawDevice::VulkanRawDevice(
     const VkPhysicalDevice physical_device,
     VulkanQueues queues,
     DeviceProperties device_properties,
-    DeviceLimits device_limits) noexcept
+    DeviceLimits device_limits,
+    SupportedFeatures supported_features) noexcept
     : m_instance(core::move(instance))
     , m_device(device)
     , m_physical_device(physical_device)
-    , m_queues(queues)
+    , m_queues(std::move(queues))
     , m_device_properties(device_properties)
     , m_device_limits(device_limits)
     , m_extensions(m_instance->get_instance(), device)
+    , m_supported_features(supported_features)
 {
 }
 
@@ -153,6 +157,11 @@ const DeviceLimits& VulkanRawDevice::get_device_limits() const noexcept
     return m_device_limits;
 }
 
+const SupportedFeatures& VulkanRawDevice::supported_features() const noexcept
+{
+    return m_supported_features;
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////
 // VulkanDevice
 
@@ -162,10 +171,17 @@ VulkanDevice::VulkanDevice(
     const VkPhysicalDevice physical_device,
     VulkanQueues queues,
     DeviceProperties device_properties,
-    DeviceLimits device_limits) noexcept
+    DeviceLimits device_limits,
+    SupportedFeatures supported_features) noexcept
     : m_instance(core::move(instance))
     , m_raw_device(core::make_shared<VulkanRawDevice>(
-          m_instance, device, physical_device, queues, device_properties, device_limits))
+          m_instance,
+          device,
+          physical_device,
+          queues,
+          device_properties,
+          device_limits,
+          supported_features))
     , m_allocator(core::make_shared<VulkanAllocator>(m_raw_device))
     , m_managers(m_raw_device)
     , m_submit_work_scheduler(m_raw_device, m_managers)

@@ -147,10 +147,11 @@ struct AccessInfo {
     VkImageLayout image_layout;
 };
 
-[[nodiscard]] AccessInfo get_access_info(const rhi::AccessFlags flag) noexcept;
+[[nodiscard]] AccessInfo get_access_info(
+    const rhi::AccessFlags flag, const bool supports_mesh_shaders) noexcept;
 
 [[nodiscard]] VkImageLayout map_access_flags_to_image_layout(
-    rhi::AccessFlags flags) noexcept;
+    rhi::AccessFlags flags, const bool supports_mesh_shaders) noexcept;
 
 [[nodiscard]] VkAccessFlags to_access_flags(const VkImageLayout image_layout) noexcept;
 

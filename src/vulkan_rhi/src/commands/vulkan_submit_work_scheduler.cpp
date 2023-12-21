@@ -232,7 +232,8 @@ void VulkanSubmitWorkScheduler::submit(
 
             const VkImageLayout texture_old_layout =
                 helpers::map_access_flags_to_image_layout(
-                    present_info.texture_previous_access);
+                    present_info.texture_previous_access,
+                    m_raw_device->supported_features().mesh_shaders);
 
             if (!helpers::is_layout_allowed(texture_old_layout, texture_usage)) {
                 core::panic(

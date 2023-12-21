@@ -9,18 +9,21 @@
 namespace tundra::vulkan_rhi {
 
 [[nodiscard]] core::Tuple<VkAccessFlags, VkPipelineStageFlags, VkImageLayout>
-    translate_previous_access(const rhi::AccessFlags flags) noexcept
+    translate_previous_access(
+        const rhi::AccessFlags flags, const bool supports_mesh_shaders) noexcept
 {
     VkAccessFlags access_flags {};
     VkPipelineStageFlags pipeline_stage_flags {};
-    const VkImageLayout image_layout = helpers::map_access_flags_to_image_layout(flags);
+    const VkImageLayout image_layout = helpers::map_access_flags_to_image_layout(
+        flags, supports_mesh_shaders);
 
     if (flags != rhi::AccessFlags::NONE) {
         for (usize i = 0; i <= static_cast<usize>(rhi::AccessFlags::MAX_VALUE); ++i) {
             const rhi::AccessFlags flag = static_cast<rhi::AccessFlags>(1 << i);
 
             if (contains(flags, flag)) {
-                const helpers::AccessInfo access_info = helpers::get_access_info(flag);
+                const helpers::AccessInfo access_info = helpers::get_access_info(
+                    flag, supports_mesh_shaders);
                 pipeline_stage_flags |= access_info.stage_flags;
                 if (rhi::is_write_access(flag)) {
                     access_flags |= access_info.access_flags;
@@ -34,18 +37,22 @@ namespace tundra::vulkan_rhi {
 
 [[nodiscard]] core::Tuple<VkAccessFlags, VkPipelineStageFlags, VkImageLayout>
     translate_next_access(
-        const rhi::AccessFlags flags, const VkAccessFlags src_assess_mask) noexcept
+        const rhi::AccessFlags flags,
+        const VkAccessFlags src_assess_mask,
+        const bool supports_mesh_shaders) noexcept
 {
     VkAccessFlags access_flags {};
     VkPipelineStageFlags pipeline_stage_flags {};
-    const VkImageLayout image_layout = helpers::map_access_flags_to_image_layout(flags);
+    const VkImageLayout image_layout = helpers::map_access_flags_to_image_layout(
+        flags, supports_mesh_shaders);
 
     if (flags != rhi::AccessFlags::NONE) {
         for (usize i = 0; i <= static_cast<usize>(rhi::AccessFlags::MAX_VALUE); ++i) {
             const rhi::AccessFlags flag = static_cast<rhi::AccessFlags>(1 << i);
 
             if (contains(flags, flag)) {
-                const helpers::AccessInfo access_info = helpers::get_access_info(flag);
+                const helpers::AccessInfo access_info = helpers::get_access_info(
+                    flag, supports_mesh_shaders);
 
                 pipeline_stage_flags |= access_info.stage_flags;
                 if (src_assess_mask != 0) {
@@ -97,6 +104,7 @@ namespace tundra::vulkan_rhi {
 
 VulkanBarrier::VulkanBarrier(const core::SharedPtr<VulkanRawDevice>& raw_device) noexcept
     : m_raw_device(raw_device)
+    , m_supports_mesh_shaders(raw_device->supported_features().mesh_shaders)
 {
     m_buffer_barriers.reserve(16);
     m_image_barriers.reserve(16);
@@ -141,9 +149,9 @@ void VulkanBarrier::image_layout_transition(
 void VulkanBarrier::global_barrier(const rhi::GlobalBarrier& barrier) noexcept
 {
     [[maybe_unused]] auto [src_access_mask, src_stage_mask, _0] =
-        translate_previous_access(barrier.previous_access);
+        translate_previous_access(barrier.previous_access, m_supports_mesh_shaders);
     [[maybe_unused]] auto [dst_access_mask, dst_stage_mask, _1] = translate_next_access(
-        barrier.next_access, src_access_mask);
+        barrier.next_access, src_access_mask, m_supports_mesh_shaders);
 
     if (src_stage_mask == 0) {
         src_stage_mask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
@@ -167,9 +175,9 @@ void VulkanBarrier::texture_barrier(
     const VulkanTexture& texture, const rhi::TextureBarrier& barrier) noexcept
 {
     auto [src_access_mask, src_stage_mask, old_layout] = translate_previous_access(
-        barrier.previous_access);
+        barrier.previous_access, m_supports_mesh_shaders);
     auto [dst_access_mask, dst_stage_mask, new_layout] = translate_next_access(
-        barrier.next_access, src_access_mask);
+        barrier.next_access, src_access_mask, m_supports_mesh_shaders);
     auto [src_queue_family_index, dst_queue_family_index] = get_queue_family_indices(
         m_raw_device, barrier.source_queue, barrier.destination_queue);
 
@@ -225,9 +233,9 @@ void VulkanBarrier::buffer_barrier(
     const VulkanBuffer& buffer, const rhi::BufferBarrier& barrier) noexcept
 {
     auto [src_access_mask, src_stage_mask, old_layout] = translate_previous_access(
-        barrier.previous_access);
+        barrier.previous_access, m_supports_mesh_shaders);
     auto [dst_access_mask, dst_stage_mask, new_layout] = translate_next_access(
-        barrier.next_access, src_access_mask);
+        barrier.next_access, src_access_mask, m_supports_mesh_shaders);
     auto [src_queue_family_index, dst_queue_family_index] = get_queue_family_indices(
         m_raw_device, barrier.source_queue, barrier.destination_queue);
 
