@@ -2,6 +2,7 @@
 
 struct VisibilityBufferFragInput {
     uint visible_meshlet_index : TEXCOORD0;
+    float3 normal : TEXCOORD1;
     uint triangle_index : SV_PrimitiveID;
 };
 
@@ -20,6 +21,6 @@ VisibilityBufferFragOutput main(VisibilityBufferFragInput input)
                              float((hash >> 16) & 0xff)) /
                          255.0f;
 
-    output.color = float4(color, 1.f);
+    output.color = float4(input.normal, 1.f);
     return output;
 }

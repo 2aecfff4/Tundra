@@ -19,6 +19,7 @@ struct VisibilityBufferVertInput {
 struct VisibilityBufferVertOutput {
     float4 position : SV_Position;
     uint visible_meshlet_index : TEXCOORD0;
+    float3 normal : TEXCOORD1;
 };
 
 ///
@@ -76,6 +77,7 @@ VisibilityBufferVertOutput main(VisibilityBufferVertInput input)
     // const float3 vertex = load_vertex_from_meshlet(
     //     mesh_descriptor, meshlet, unpacked_index);
     const float3 vertex = mesh_descriptor.get_vertex(meshlet, unpacked_index.vertex_id);
+    const float3 normal = mesh_descriptor.get_normal(meshlet, unpacked_index.vertex_id);
 
     const float3 world_space_vertex = (quat_rotate_vector(
                                            instance_transform.quat, vertex) *
@@ -89,6 +91,7 @@ VisibilityBufferVertOutput main(VisibilityBufferVertInput input)
 
     output.position = pos;
     output.visible_meshlet_index = unpacked_index.meshlet_id;
+    output.normal = normal;
 
     return output;
 }
