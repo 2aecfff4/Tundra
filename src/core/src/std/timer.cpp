@@ -22,11 +22,8 @@ void Timer::reset() noexcept
 f32 Timer::get_delta_time() const noexcept
 {
     const auto now = std::chrono::high_resolution_clock::now();
-    const auto duration =
-        std::chrono::duration_cast<std::chrono::duration<f32, std::micro>>(
-            now - m_previous_time);
-    const std::chrono::duration<f32, std::deci> delta = now - m_previous_time;
-    return duration.count();
+    using ms = std::chrono::duration<f32, std::milli>;
+    return std::chrono::duration_cast<ms>(now - m_previous_time).count();
 }
 
 f32 Timer::get_lifetime() const noexcept
