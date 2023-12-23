@@ -345,6 +345,12 @@ void MeshletMesh::import(
             core::as_span(core::as_const(build_meshlets_result.meshlet_triangles)),
             core::as_span(core::as_const(vertices)));
 
+        const std::array<f32, 3> cone_apex = {
+            bounds.cone_apex[0],
+            bounds.cone_apex[1],
+            bounds.cone_apex[2],
+        };
+
         const u32 cone_axis_and_cutoff //
             = (((u32)(static_cast<i16>(bounds.cone_axis_s8[0]) + 127) & 0xFFu) << 24u) |
               (((u32)(static_cast<i16>(bounds.cone_axis_s8[1]) + 127) & 0xFFu) << 16u) |
@@ -354,6 +360,7 @@ void MeshletMesh::import(
         final_meshlets.push_back(Meshlet {
             .center = math::Vec3 { bounds.center },
             .radius = bounds.radius,
+            .cone_apex = cone_apex,
             .cone_axis_and_cutoff = cone_axis_and_cutoff,
             .triangle_offset = meshlet.triangle_offset,
             .triangle_count = meshlet.triangle_count,

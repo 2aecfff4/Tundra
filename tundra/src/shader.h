@@ -3,6 +3,7 @@
 #include "core/utils/enum_flags.h"
 #include "math/quat.h"
 #include "math/vector3.h"
+#include <array>
 
 namespace tundra::shader {
 
@@ -79,6 +80,7 @@ struct Meshlet {
     math::Vec3 center;
     float radius;
 
+    std::array<f32, 3> cone_apex;
     /// const float cone_axis0 = (int)((cone_axis_and_cutoff & 0xFF000000) >> 24) / 127.0,
     /// const float cone_axis1 = (int)((cone_axis_and_cutoff & 0x00FF0000) >> 16) / 127.0,
     /// const float cone_axis2 = (int)((cone_axis_and_cutoff & 0x0000FF00) >> 8) / 127.0);

@@ -4,6 +4,7 @@
 #include "core/std/containers/string.h"
 #include "math/vector3.h"
 #include "math/vector4.h"
+#include <array>
 
 namespace tundra {
 
@@ -13,6 +14,7 @@ struct MeshletMesh {
         math::Vec3 center;
         f32 radius;
 
+        std::array<f32, 3> cone_apex;
         /// const float cone_axis0 = (int)((cone_axis_and_cutoff & 0xFF000000) >> 24) / 127.0,
         /// const float cone_axis1 = (int)((cone_axis_and_cutoff & 0x00FF0000) >> 16) / 127.0,
         /// const float cone_axis2 = (int)((cone_axis_and_cutoff & 0x0000FF00) >> 8) / 127.0);

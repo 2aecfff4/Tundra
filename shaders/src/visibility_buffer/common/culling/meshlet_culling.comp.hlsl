@@ -68,19 +68,13 @@ struct Input {
         if (meshlet_index < mesh_descriptor.meshlet_count) {
             const Meshlet meshlet = mesh_descriptor.get_meshlet(meshlet_index);
 
-            const float3 center = mul(ubo.world_to_view,
-                                      float4(
-                                          ((quat_rotate_vector(
-                                                instance_transform.quat, meshlet.center) *
-                                            instance_transform.scale) +
-                                           instance_transform.position),
-                                          1))
-                                      .xyz;
+            const float3 center = (quat_rotate_vector(
+                                       instance_transform.quat, meshlet.center) *
+                                   instance_transform.scale) +
+                                  instance_transform.position;
 
-            const float radius = meshlet.radius;
+            const float radius = meshlet.radius * instance_transform.scale;
 
-            // #TODO: Frustum culling is a little bit broken.
-            // As you move forward, the frustum gets smaller and culls too much.
             is_visible = frustum_culling(ubo.frustum_planes, center, radius);
 
             {
@@ -97,20 +91,44 @@ struct Input {
                 const float cone_cutoff =
                     (int((meshlet.cone_axis_and_cutoff & 0x000000FF)) - 127) / 127.0;
 
-                const float3 direction = center - ubo.camera_position;
-                const float3 normalized_direction = normalize(direction);
-                const float distance = length(direction);
+                // const float3 direction = center - ubo.camera_position;
+                // const float3 direction = ubo.camera_position - center;
+                // const float3 normalized_direction = normalize(direction);
+                // const float distance = length(direction);
 
-                const bool cone_cull = dot(normalized_direction, cone_axis) >=
-                                       // cone_cutoff;
-                                       ((cone_cutoff * distance) + radius);
+                // const bool cone_cull = dot(center - ubo.camera_position, cone_axis) >=
+                //                        // cone_cutoff;
+                //                        ((cone_cutoff *
+                //                          length(center - ubo.camera_position)) +
+                //                         radius);
 
-                is_visible = is_visible && !cone_cull;
+                float3 cone_apex = {
+                    meshlet.cone_apex[0],
+                    meshlet.cone_apex[1],
+                    meshlet.cone_apex[2],
+                };
+                cone_apex = quat_rotate_vector(instance_transform.quat, cone_apex);
+
+                const bool cull = dot(normalize(center - ubo.camera_position),
+                                      cone_axis) >=
+                                  cone_cutoff +
+                                      radius / length(center - ubo.camera_position);
+
+                // // const float3 direction = center - ubo.camera_position;
+                // const float3 direction = ubo.camera_position - center;
+                // const float3 normalized_direction = normalize(direction);
+                // const float distance = length(direction);
+
+                // const bool cone_cull = dot(normalized_direction, cone_axis) >=
+                //                        // cone_cutoff;
+                //                        ((cone_cutoff * distance) + radius);
+
+                is_visible = is_visible && !cull;
             }
 
-            if (is_visible && (ubo.in_.previous_frame_depth_texture_srv != 0xFFFFFFFF)) {
-                // #TODO: Depth culling
-            }
+            // if (is_visible && (ubo.in_.previous_frame_depth_texture_srv != 0xFFFFFFFF)) {
+            //     // #TODO: Depth culling
+            // }
         }
 
         // Count number of lanes with `is_visible` set to true(lane indices smaller than this lane’s)

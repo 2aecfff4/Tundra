@@ -110,12 +110,12 @@ groupshared uint3 g_indices[128];
             transformed_vertices[i] = transformed_vertices[i] / transformed_vertices[i].w;
         }
 
-        const float2 min_p = round(
+        const float2 min_p = //round(
             min(min(transformed_vertices[0].xy, transformed_vertices[1].xy),
-                transformed_vertices[2].xy));
-        const float2 max_p = round(
+                transformed_vertices[2].xy);
+        const float2 max_p = //round(
             max(max(transformed_vertices[0].xy, transformed_vertices[1].xy),
-                transformed_vertices[2].xy));
+                transformed_vertices[2].xy);
 
         // vulkan NDC
         // (-1, -1)
@@ -125,9 +125,9 @@ groupshared uint3 g_indices[128];
         //     |             |
         //     |-------------|
         //                 (1, 1)
-        is_visible = (det > 0.f)                     //
-                     && !any(min_p < float2(-1, -1)) //
-                     && !any(max_p > float2(1, 1));
+        const bool cull_frustum = !(
+            all(min_p < float2(-1.1, -1.1)) && all(max_p > float2(1.1, 1.1)));
+        is_visible = (det > 0.f) && cull_frustum;
     }
 
     const uint triangle_offset = WavePrefixCountBits(is_visible);
