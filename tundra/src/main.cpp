@@ -190,6 +190,7 @@ private:
             meshlets.push_back(shader::Meshlet {
                 .center = meshlet.center,
                 .radius = meshlet.radius,
+                .cone_apex = meshlet.cone_apex,
                 .cone_axis_and_cutoff = meshlet.cone_axis_and_cutoff,
                 .triangle_offset = meshlet.triangle_offset,
                 .triangle_count = meshlet.triangle_count,
