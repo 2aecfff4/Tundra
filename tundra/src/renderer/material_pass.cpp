@@ -123,6 +123,10 @@ struct MaterialUbo {
                 });
 
             encoder.push_constants(ubo_buffer, ubo_ref.offset);
+            encoder.global_barrier(rhi::GlobalBarrier {
+                .previous_access = rhi::AccessFlags::GENERAL,
+                .next_access = rhi::AccessFlags::GENERAL,
+            });
             encoder.dispatch(
                 helpers::get_pipeline(
                     pipelines::passes::MATERIAL_PASS_NAME, input.compute_pipelines),

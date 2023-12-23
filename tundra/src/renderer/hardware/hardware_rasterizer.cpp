@@ -572,6 +572,7 @@ RenderMeshletsOutput render_meshlets(
                 }
 
                 {
+                    global_barrier();
                     draw_meshlets();
                     global_barrier();
                 }

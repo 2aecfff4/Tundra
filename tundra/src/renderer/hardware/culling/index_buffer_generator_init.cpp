@@ -180,6 +180,11 @@ IndexBufferGeneratorInitOutput index_buffer_generator_init(
                 1,
                 1,
                 1);
+
+            encoder.global_barrier(rhi::GlobalBarrier {
+                .previous_access = rhi::AccessFlags::UAV_COMPUTE,
+                .next_access = rhi::AccessFlags::UAV_COMPUTE,
+            });
         });
 
     return IndexBufferGeneratorInitOutput {

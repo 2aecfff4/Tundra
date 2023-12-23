@@ -55,8 +55,8 @@ namespace tundra::vulkan_rhi {
                     flag, supports_mesh_shaders);
 
                 pipeline_stage_flags |= access_info.stage_flags;
+                access_flags |= access_info.access_flags;
                 if (src_assess_mask != 0) {
-                    access_flags |= access_info.access_flags;
                 }
             }
         }
@@ -132,6 +132,7 @@ void VulkanBarrier::image_layout_transition(
     m_src_stage_mask |= src_stage_mask;
     m_dst_stage_mask |= dst_stage_mask;
 
+    const auto flags = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
     VkImageMemoryBarrier image_barrier {
         .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
         .srcAccessMask = helpers::to_access_flags(old_layout),
@@ -163,10 +164,11 @@ void VulkanBarrier::global_barrier(const rhi::GlobalBarrier& barrier) noexcept
     m_src_stage_mask |= src_stage_mask;
     m_dst_stage_mask |= dst_stage_mask;
 
+    const auto flags = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
     VkMemoryBarrier memory_barrier {
         .sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER,
-        .srcAccessMask = src_access_mask,
-        .dstAccessMask = dst_access_mask,
+        .srcAccessMask = src_access_mask | flags,
+        .dstAccessMask = dst_access_mask | flags,
     };
     m_memory_barriers.push_back(core::move(memory_barrier));
 }
@@ -268,8 +270,10 @@ void VulkanBarrier::execute(const VkCommandBuffer command_buffer) const noexcept
         !m_image_barriers.empty()) {
         m_raw_device->get_device().cmd_pipeline_barrier(
             command_buffer,
-            m_src_stage_mask,
-            m_dst_stage_mask,
+            // m_src_stage_mask,
+            // m_dst_stage_mask,
+            VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+            VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
             0,
             core::as_span(m_memory_barriers),
             core::as_span(m_buffer_barriers),

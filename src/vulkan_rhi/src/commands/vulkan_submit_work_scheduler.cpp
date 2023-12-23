@@ -3,6 +3,7 @@
 #include "core/profiler.h"
 #include "resources/vulkan_swapchain.h"
 #include "resources/vulkan_texture.h"
+#include "vulkan/vulkan_core.h"
 #include "vulkan_device.h"
 #include "vulkan_helpers.h"
 
@@ -338,8 +339,10 @@ void VulkanSubmitWorkScheduler::submit(
             .pSignalSemaphoreValues = values_signal,
         };
 
-        const VkPipelineStageFlags flags = helpers::map_synchronization_stage(
-            rhi::SynchronizationStage::BOTTOM_OF_PIPE);
+        // const VkPipelineStageFlags flags = helpers::map_synchronization_stage(
+        //     rhi::SynchronizationStage::TOP_OF_PIPE);
+        // const VkPipelineStageFlags flags = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+        const VkPipelineStageFlags flags = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
 
         VkSubmitInfo submit_info {
             .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
