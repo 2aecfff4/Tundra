@@ -48,13 +48,6 @@ groupshared uint3 g_indices[128];
 [numthreads(128, 1, 1)] void main(const Input input) {
     const IndexBufferGeneratorUBO ubo = tundra::load_ubo<IndexBufferGeneratorUBO>();
 
-    // #TODO: Move this to init compute shader
-    if (input.meshlet_index == 0) {
-        tundra::buffer_store<false>(ubo.out_.visible_indices_count_uav, 0, 0, 0);
-    }
-
-    AllMemoryBarrierWithGroupSync();
-
     const uint meshlets_offset = tundra::buffer_load<false, uint>(
         ubo.in_.meshlet_offsets_srv, 0, ubo.in_.index);
 

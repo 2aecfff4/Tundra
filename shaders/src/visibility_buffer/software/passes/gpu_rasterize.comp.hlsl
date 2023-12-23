@@ -24,6 +24,7 @@ struct GPURasterizeUBO {
         uint mesh_instance_transforms_srv;
         uint mesh_descriptors_srv;
         uint visible_meshlets_srv;
+        uint visible_meshlets_count_srv;
     } in_;
 
     struct {
@@ -124,9 +125,13 @@ groupshared float3 g_vertices[64];
 ///
 [numthreads(128, 1, 1)] void main(const Input input) {
     const GPURasterizeUBO ubo = tundra::load_ubo<GPURasterizeUBO>();
+    const uint visible_meshlets_count = tundra::buffer_load<false, uint>(
+        ubo.in_.visible_meshlets_count_srv, 0, 0);
 
-    // #TODO: Bounds checking 💀
     const uint meshlet_index = input.group_id.x * 128 + input.group_id.y;
+    if (meshlet_index >= visible_meshlets_count) {
+        return;
+    }
 
     const VisibleMeshlet visible_meshlet = tundra::buffer_load<false, VisibleMeshlet>(
         ubo.in_.visible_meshlets_srv, 0, meshlet_index);
@@ -151,6 +156,8 @@ groupshared float3 g_vertices[64];
                 triangle_index);
         }
     }
+
+    GroupMemoryBarrierWithGroupSync();
 
     /////////////////////////////////////////////////////////////////////////////////////
     // Load and transform vertices

@@ -2,6 +2,7 @@
 #include "pipelines.h"
 #include "renderer/config.h"
 #include "renderer/helpers.h"
+#include "rhi/resources/handle.h"
 #include "rhi/rhi_context.h"
 
 namespace tundra::renderer::passes {
@@ -17,6 +18,7 @@ struct GPURasterizeUBO {
         u32 mesh_instance_transforms_srv = config::INVALID_SHADER_HANDLE;
         u32 mesh_descriptors_srv = config::INVALID_SHADER_HANDLE;
         u32 visible_meshlets_srv = config::INVALID_SHADER_HANDLE;
+        u32 visible_meshlets_count_srv = config::INVALID_SHADER_HANDLE;
     } in_;
 
     struct {
@@ -34,6 +36,7 @@ struct GPURasterizeUBO {
         core::SharedPtr<UboBuffer> ubo_buffer;
 
         frame_graph::BufferHandle visible_meshlets;
+        frame_graph::BufferHandle visible_meshlets_count;
         frame_graph::BufferHandle dispatch_indirect_args;
         frame_graph::TextureHandle vis_texture;
     };
@@ -49,13 +52,16 @@ struct GPURasterizeUBO {
             data.visible_meshlets = builder.read(
                 input.visible_meshlets, frame_graph::ResourceUsage::SHADER_COMPUTE);
 
+            data.visible_meshlets_count = builder.read(
+                input.visible_meshlets_count, frame_graph::ResourceUsage::SHADER_COMPUTE);
+
             data.dispatch_indirect_args = builder.read(
                 input.dispatch_indirect_args,
                 frame_graph::ResourceUsage::INDIRECT_BUFFER);
 
             data.vis_texture = input.vis_texture;
-            data.vis_texture = builder.read(
-                data.vis_texture, frame_graph::ResourceUsage::SHADER_COMPUTE);
+            // data.vis_texture = builder.read(
+            //     data.vis_texture, frame_graph::ResourceUsage::SHADER_COMPUTE);
             data.vis_texture = builder.write(
                 data.vis_texture, frame_graph::ResourceUsage::SHADER_COMPUTE);
 
@@ -69,6 +75,8 @@ struct GPURasterizeUBO {
                 data.ubo_buffer->buffer());
             const rhi::BufferHandle visible_meshlets = registry.get_buffer(
                 data.visible_meshlets);
+            const rhi::BufferHandle visible_meshlets_count = registry.get_buffer(
+                data.visible_meshlets_count);
             const rhi::BufferHandle dispatch_indirect_args = registry.get_buffer(
                 data.dispatch_indirect_args);
             const rhi::TextureHandle vis_texture = registry.get_texture(data.vis_texture);
@@ -80,6 +88,7 @@ struct GPURasterizeUBO {
                     .mesh_instance_transforms_srv = input.mesh_instance_transforms.get_srv(),
                     .mesh_descriptors_srv = input.mesh_descriptors.get_srv(),
                     .visible_meshlets_srv = visible_meshlets.get_srv(),
+                    .visible_meshlets_count_srv = visible_meshlets_count.get_srv(),
                 },
                 .out_ = {
                     .output_texture_uav = vis_texture.get_uav(),

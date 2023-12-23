@@ -10,6 +10,11 @@ namespace tundra::renderer::common::culling {
 namespace ubo {
 
 ///
+struct InstanceCullingInitUbo {
+    u32 meshlet_culling_dispatch_args_uav = config::INVALID_SHADER_HANDLE;
+};
+
+///
 struct InstanceCullingUBO {
     std::array<math::Vec4, config::NUM_PLANES> frustum_planes = {};
     u32 instance_count = 0;
@@ -93,7 +98,42 @@ InstanceCullingOutput instance_culling_and_lod(
             const rhi::BufferHandle meshlet_culling_dispatch_args = registry.get_buffer(
                 data.meshlet_culling_dispatch_args);
 
-            const ubo::InstanceCullingUBO ubo {
+            {
+                const ubo::InstanceCullingInitUbo ubo {
+                    .meshlet_culling_dispatch_args_uav = meshlet_culling_dispatch_args
+                                                             .get_uav(),
+                };
+
+                const auto ubo_ref = data.ubo_buffer
+                                         ->allocate<ubo::InstanceCullingInitUbo>();
+
+                rhi->update_buffer(
+                    ubo_buffer,
+                    {
+                        rhi::BufferUpdateRegion {
+                            .src = core::as_byte_span(ubo),
+                            .dst_offset = ubo_ref.offset,
+                        },
+                    });
+
+                encoder.push_constants(ubo_buffer, ubo_ref.offset);
+                encoder.dispatch(
+                    helpers::get_pipeline(
+                        pipelines::common::culling::
+                            INSTANCE_CULLING_AND_LOD_PIPELINE_INIT_NAME,
+                        input.compute_pipelines),
+                    1,
+                    1,
+                    1);
+            }
+
+            encoder.global_barrier(rhi::GlobalBarrier {
+                .previous_access = rhi::AccessFlags::UAV_COMPUTE,
+                .next_access = rhi::AccessFlags::UAV_COMPUTE,
+            });
+
+            {
+                const ubo::InstanceCullingUBO ubo {
                 .frustum_planes = input.frustum_planes,
                 .instance_count = input.instance_count,
                 .in_ = {
@@ -107,30 +147,26 @@ InstanceCullingOutput instance_culling_and_lod(
                 },
             };
 
-            const auto ubo_ref = data.ubo_buffer->allocate<ubo::InstanceCullingUBO>();
+                const auto ubo_ref = data.ubo_buffer->allocate<ubo::InstanceCullingUBO>();
 
-            rhi->update_buffer(
-                ubo_buffer,
-                {
-                    rhi::BufferUpdateRegion {
-                        .src = core::as_byte_span(ubo),
-                        .dst_offset = ubo_ref.offset,
-                    },
-                });
+                rhi->update_buffer(
+                    ubo_buffer,
+                    {
+                        rhi::BufferUpdateRegion {
+                            .src = core::as_byte_span(ubo),
+                            .dst_offset = ubo_ref.offset,
+                        },
+                    });
 
-            encoder.push_constants(ubo_buffer, ubo_ref.offset);
-            encoder.dispatch(
-                helpers::get_pipeline(
-                    pipelines::common::culling::INSTANCE_CULLING_AND_LOD_PIPELINE_NAME,
-                    input.compute_pipelines),
-                rhi::CommandEncoder::get_group_count(input.instance_count, 128),
-                1,
-                1);
-
-            encoder.global_barrier(rhi::GlobalBarrier {
-                .previous_access = rhi::AccessFlags::GENERAL,
-                .next_access = rhi::AccessFlags::GENERAL,
-            });
+                encoder.push_constants(ubo_buffer, ubo_ref.offset);
+                encoder.dispatch(
+                    helpers::get_pipeline(
+                        pipelines::common::culling::INSTANCE_CULLING_AND_LOD_PIPELINE_NAME,
+                        input.compute_pipelines),
+                    rhi::CommandEncoder::get_group_count(input.instance_count, 128),
+                    1,
+                    1);
+            }
         });
 
     return InstanceCullingOutput {

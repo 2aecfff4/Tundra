@@ -11,8 +11,14 @@ namespace tundra::pipelines {
 ///
 namespace common::culling {
 
+inline constexpr const char* INSTANCE_CULLING_AND_LOD_PIPELINE_INIT_NAME =
+    "visibility_buffer/common/culling/instance_culling_and_lod_init";
+
 inline constexpr const char* INSTANCE_CULLING_AND_LOD_PIPELINE_NAME =
     "visibility_buffer/common/culling/instance_culling_and_lod";
+
+inline constexpr const char* MESHLET_CULLING_INIT_NAME =
+    "visibility_buffer/common/culling/meshlet_culling_init";
 
 inline constexpr const char* MESHLET_CULLING_NAME =
     "visibility_buffer/common/culling/meshlet_culling";
@@ -27,6 +33,9 @@ namespace culling {
 
 inline constexpr const char* INDEX_BUFFER_GENERATOR_INIT_NAME =
     "visibility_buffer/hardware/culling/index_buffer_generator_init";
+
+inline constexpr const char* INDEX_BUFFER_GENERATOR_CLEAR_NAME =
+    "visibility_buffer/hardware/culling/index_buffer_generator_clear";
 
 inline constexpr const char* INDEX_BUFFER_GENERATOR_NAME =
     "visibility_buffer/hardware/culling/index_buffer_generator";

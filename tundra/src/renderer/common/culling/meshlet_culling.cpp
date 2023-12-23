@@ -8,6 +8,11 @@ namespace tundra::renderer::common::culling {
 namespace ubo {
 
 ///
+struct MeshletCullingInitUbo {
+    u32 visible_meshlets_count_uav = config::INVALID_SHADER_HANDLE;
+};
+
+///
 struct MeshletCullingUBO {
     math::Mat4 projection = math::Mat4 {};
     math::Mat4 world_to_view = math::Mat4 {};
@@ -39,7 +44,7 @@ inline constexpr u32 MAX_VISIBLE_MESHLETS_COUNT = (1u << 20u) * 4u;
 } // namespace config
 
 ///
-[[nodiscard]] MeshletCullingOutput meshlet_culling(
+MeshletCullingOutput meshlet_culling(
     frame_graph::FrameGraph& fg, const MeshletCullingInput& input) noexcept
 {
     tndr_assert(
@@ -111,7 +116,40 @@ inline constexpr u32 MAX_VISIBLE_MESHLETS_COUNT = (1u << 20u) * 4u;
             const rhi::BufferHandle visible_meshlets_count = registry.get_buffer(
                 data.visible_meshlets_count);
 
-            const ubo::MeshletCullingUBO ubo {
+            {
+                const ubo::MeshletCullingInitUbo ubo {
+                    .visible_meshlets_count_uav = visible_meshlets_count.get_uav(),
+                };
+
+                const auto ubo_ref = data.ubo_buffer
+                                         ->allocate<ubo::MeshletCullingInitUbo>();
+
+                rhi->update_buffer(
+                    ubo_buffer,
+                    {
+                        rhi::BufferUpdateRegion {
+                            .src = core::as_byte_span(ubo),
+                            .dst_offset = ubo_ref.offset,
+                        },
+                    });
+
+                encoder.push_constants(ubo_buffer, ubo_ref.offset);
+                encoder.dispatch(
+                    helpers::get_pipeline(
+                        pipelines::common::culling::MESHLET_CULLING_INIT_NAME,
+                        input.compute_pipelines),
+                    1,
+                    1,
+                    1);
+            }
+
+            encoder.global_barrier(rhi::GlobalBarrier {
+                .previous_access = rhi::AccessFlags::UAV_COMPUTE,
+                .next_access = rhi::AccessFlags::UAV_COMPUTE,
+            });
+
+            {
+                const ubo::MeshletCullingUBO ubo {
                 .world_to_view = input.world_to_view,
                 .frustum_planes = input.frustum_planes,
                 .camera_position = input.camera_position,
@@ -127,29 +165,25 @@ inline constexpr u32 MAX_VISIBLE_MESHLETS_COUNT = (1u << 20u) * 4u;
                 },
             };
 
-            const auto ubo_ref = data.ubo_buffer->allocate<ubo::MeshletCullingUBO>();
+                const auto ubo_ref = data.ubo_buffer->allocate<ubo::MeshletCullingUBO>();
 
-            rhi->update_buffer(
-                ubo_buffer,
-                {
-                    rhi::BufferUpdateRegion {
-                        .src = core::as_byte_span(ubo),
-                        .dst_offset = ubo_ref.offset,
-                    },
-                });
+                rhi->update_buffer(
+                    ubo_buffer,
+                    {
+                        rhi::BufferUpdateRegion {
+                            .src = core::as_byte_span(ubo),
+                            .dst_offset = ubo_ref.offset,
+                        },
+                    });
 
-            encoder.push_constants(ubo_buffer, ubo_ref.offset);
-            encoder.dispatch_indirect(
-                helpers::get_pipeline(
-                    pipelines::common::culling::MESHLET_CULLING_NAME,
-                    input.compute_pipelines),
-                meshlet_culling_dispatch_args,
-                0);
-
-            encoder.global_barrier(rhi::GlobalBarrier {
-                .previous_access = rhi::AccessFlags::GENERAL,
-                .next_access = rhi::AccessFlags::GENERAL,
-            });
+                encoder.push_constants(ubo_buffer, ubo_ref.offset);
+                encoder.dispatch_indirect(
+                    helpers::get_pipeline(
+                        pipelines::common::culling::MESHLET_CULLING_NAME,
+                        input.compute_pipelines),
+                    meshlet_culling_dispatch_args,
+                    0);
+            }
         });
 
     return MeshletCullingOutput {

@@ -36,6 +36,11 @@ struct GenerateIndexBufferGeneratorDispatchArgsUbo {
 };
 
 ///
+struct IndexBufferGeneratorClearUbo {
+    u32 visible_indices_count_uav = config::INVALID_SHADER_HANDLE;
+};
+
+///
 struct IndexBufferGeneratorUBO {
     math::Mat4 world_to_clip;
     math::UVec2 view_size;
@@ -281,44 +286,78 @@ RenderMeshletsOutput render_meshlets(
                 const auto visible_meshlets_count = registry.get_buffer(
                     data.visible_meshlets_count);
 
-                const ubo::IndexBufferGeneratorUBO ubo { 
-                    .world_to_clip = input.world_to_clip,
-                    .view_size = input.view_size,
-                    .max_num_indices = input.max_num_indices,
-                    .in_ = {
-                        .index = index,
-                        .meshlet_offsets_srv = meshlet_offsets.get_srv(),
-                        .visible_meshlets_count_srv = visible_meshlets_count.get_srv(),
-                        .mesh_instance_transforms_srv = input.gpu_mesh_instance_transforms.get_srv(),
-                        .mesh_descriptors_srv = input.gpu_mesh_descriptors.get_srv(),
-                        .visible_meshlets_srv = visible_meshlets.get_srv(),
-                        .meshlets_offset_srv = meshlet_offsets.get_srv(),
-                    },
-                    .out_ = {
-                        .index_buffer_uav = index_buffer.get_uav(),
+                {
+                    const ubo::IndexBufferGeneratorClearUbo ubo {
                         .visible_indices_count_uav = visible_indices_count.get_uav(),
-                    }                      
-                };
+                    };
 
-                const auto ubo_ref = data.ubo_buffer
-                                         ->allocate<ubo::IndexBufferGeneratorUBO>();
+                    const auto ubo_ref =
+                        data.ubo_buffer->allocate<ubo::IndexBufferGeneratorClearUbo>();
 
-                rhi->update_buffer(
-                    ubo_buffer,
-                    {
-                        rhi::BufferUpdateRegion {
-                            .src = core::as_byte_span(ubo),
-                            .dst_offset = ubo_ref.offset,
+                    rhi->update_buffer(
+                        ubo_buffer,
+                        {
+                            rhi::BufferUpdateRegion {
+                                .src = core::as_byte_span(ubo),
+                                .dst_offset = ubo_ref.offset,
+                            },
+                        });
+
+                    encoder.push_constants(ubo_buffer, ubo_ref.offset);
+                    encoder.dispatch(
+                        helpers::get_pipeline(
+                            pipelines::hardware::culling::INDEX_BUFFER_GENERATOR_CLEAR_NAME,
+                            input.compute_pipelines),
+                        1,
+                        1,
+                        1);
+                }
+
+                encoder.global_barrier(rhi::GlobalBarrier {
+                    .previous_access = rhi::AccessFlags::UAV_COMPUTE,
+                    .next_access = rhi::AccessFlags::UAV_COMPUTE,
+                });
+
+                {
+                    const ubo::IndexBufferGeneratorUBO ubo { 
+                        .world_to_clip = input.world_to_clip,
+                        .view_size = input.view_size,
+                        .max_num_indices = input.max_num_indices,
+                        .in_ = {
+                            .index = index,
+                            .meshlet_offsets_srv = meshlet_offsets.get_srv(),
+                            .visible_meshlets_count_srv = visible_meshlets_count.get_srv(),
+                            .mesh_instance_transforms_srv = input.gpu_mesh_instance_transforms.get_srv(),
+                            .mesh_descriptors_srv = input.gpu_mesh_descriptors.get_srv(),
+                            .visible_meshlets_srv = visible_meshlets.get_srv(),
+                            .meshlets_offset_srv = meshlet_offsets.get_srv(),
                         },
-                    });
+                        .out_ = {
+                            .index_buffer_uav = index_buffer.get_uav(),
+                            .visible_indices_count_uav = visible_indices_count.get_uav(),
+                        }                      
+                    };
 
-                encoder.push_constants(ubo_buffer, ubo_ref.offset);
-                encoder.dispatch_indirect(
-                    helpers::get_pipeline(
-                        pipelines::hardware::culling::INDEX_BUFFER_GENERATOR_NAME,
-                        input.compute_pipelines),
-                    index_generator_dispatch_args,
-                    sizeof(rhi::DispatchIndirectCommand) * index);
+                    const auto ubo_ref = data.ubo_buffer
+                                             ->allocate<ubo::IndexBufferGeneratorUBO>();
+
+                    rhi->update_buffer(
+                        ubo_buffer,
+                        {
+                            rhi::BufferUpdateRegion {
+                                .src = core::as_byte_span(ubo),
+                                .dst_offset = ubo_ref.offset,
+                            },
+                        });
+
+                    encoder.push_constants(ubo_buffer, ubo_ref.offset);
+                    encoder.dispatch_indirect(
+                        helpers::get_pipeline(
+                            pipelines::hardware::culling::INDEX_BUFFER_GENERATOR_NAME,
+                            input.compute_pipelines),
+                        index_generator_dispatch_args,
+                        sizeof(rhi::DispatchIndirectCommand) * index);
+                }
                 encoder.end_region();
             };
 

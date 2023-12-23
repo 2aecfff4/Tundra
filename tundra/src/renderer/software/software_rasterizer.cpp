@@ -129,6 +129,7 @@ RenderOutput software_rasterizer(
             .mesh_descriptors = input.gpu_mesh_descriptors,
             .mesh_instance_transforms = input.gpu_mesh_instance_transforms,
             .visible_meshlets = meshlet_culling.visible_meshlets,
+            .visible_meshlets_count = meshlet_culling.visible_meshlets_count,
             .dispatch_indirect_args = gpu_rasterizer_init.gpu_rasterizer_dispatch_args,
             .vis_texture = gpu_rasterizer_init.vis_texture,
             .compute_pipelines = input.compute_pipelines,

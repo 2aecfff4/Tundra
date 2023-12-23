@@ -4,6 +4,7 @@
 #include "math/matrix4.h"
 #include "math/vector2.h"
 #include "renderer/frame_graph/frame_graph.h"
+#include "renderer/frame_graph/resources/handle.h"
 #include "renderer/render_input_output.h"
 #include "renderer/ubo.h"
 
@@ -24,6 +25,7 @@ public:
 
 public:
     frame_graph::BufferHandle visible_meshlets;
+    frame_graph::BufferHandle visible_meshlets_count;
     frame_graph::BufferHandle dispatch_indirect_args;
     frame_graph::TextureHandle vis_texture;
 

@@ -47,13 +47,6 @@ struct Input {
 [numthreads(NUM_THREADS_X, 1, 1)] void main(const Input input) {
     const MeshletCullingUBO ubo = tundra::load_ubo<MeshletCullingUBO>();
 
-    // #TODO: Move this to init compute shader
-    if (input.thread_id == 0) {
-        tundra::buffer_store<false>(ubo.out_.visible_meshlets_count_uav, 0, 0, 0);
-    }
-
-    DeviceMemoryBarrierWithGroupSync();
-
     const VisibleMeshInstance visible_mesh_instance =
         tundra::buffer_load<false, VisibleMeshInstance>(
             ubo.in_.visible_mesh_instances_srv, 0, input.instance_index);
