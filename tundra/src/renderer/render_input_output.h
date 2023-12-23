@@ -17,6 +17,9 @@ using GraphicsPipelinesMap = core::HashMap<core::String, rhi::GraphicsPipelineHa
 ///
 struct RenderInput {
 public:
+    bool show_meshlets = false;
+
+public:
     /// View
     math::Mat4 world_to_view = math::Mat4 {};
     /// Projection

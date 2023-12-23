@@ -135,39 +135,42 @@ RenderOutput software_rasterizer(
             .compute_pipelines = input.compute_pipelines,
         });
 
-    // const passes::GpuRasterizeDebugOutput debug_output = passes::gpu_rasterize_debug_pass(
-    //     fg,
-    //     passes::GpuRasterizeDebugInput {
-    //         .ubo_buffer = ubo_data.ubo_buffer,
-    //         .view_size = input.view_size,
-    //         .vis_depth = gpu_rasterizer.vis_texture,
-    //         .compute_pipelines = input.compute_pipelines,
-    //     });
-    // return RenderOutput {
-    //     .color_output = debug_output.debug_texture,
-    // };
+    if (input.show_meshlets) {
+        const passes::GpuRasterizeDebugOutput debug_output =
+            passes::gpu_rasterize_debug_pass(
+                fg,
+                passes::GpuRasterizeDebugInput {
+                    .ubo_buffer = ubo_data.ubo_buffer,
+                    .view_size = input.view_size,
+                    .vis_depth = gpu_rasterizer.vis_texture,
+                    .compute_pipelines = input.compute_pipelines,
+                });
+        return RenderOutput {
+            .color_output = debug_output.debug_texture,
+        };
+    } else {
+        const passes::MaterialOutput material_output = passes::material(
+            fg,
+            passes::MaterialInput {
+                .ubo_buffer = ubo_data.ubo_buffer,
+                .world_to_clip = frustum,
+                .camera_position = input.camera_position,
+                .light_position = math::Vec3 { -5, 2, 5 },
+                // .diffuse_color = math::Vec3 { 0.5f, 0.f, 0.125f },
+                .diffuse_color = math::Vec3 { 1.0f, 0.765557f, 0.336057f },
+                .light_color = math::Vec3 { 1, 1, 1 },
+                .view_size = input.view_size,
+                .mesh_descriptors = input.gpu_mesh_descriptors,
+                .mesh_instance_transforms = input.gpu_mesh_instance_transforms,
+                .visible_meshlets = meshlet_culling.visible_meshlets,
+                .vis_depth = gpu_rasterizer.vis_texture,
+                .compute_pipelines = input.compute_pipelines,
+            });
 
-    const passes::MaterialOutput material_output = passes::material(
-        fg,
-        passes::MaterialInput {
-            .ubo_buffer = ubo_data.ubo_buffer,
-            .world_to_clip = frustum,
-            .camera_position = input.camera_position,
-            .light_position = math::Vec3 { -5, 2, 5 },
-            // .diffuse_color = math::Vec3 { 0.5f, 0.f, 0.125f },
-            .diffuse_color = math::Vec3 { 1.0f, 0.765557f, 0.336057f },
-            .light_color = math::Vec3 { 1, 1, 1 },
-            .view_size = input.view_size,
-            .mesh_descriptors = input.gpu_mesh_descriptors,
-            .mesh_instance_transforms = input.gpu_mesh_instance_transforms,
-            .visible_meshlets = meshlet_culling.visible_meshlets,
-            .vis_depth = gpu_rasterizer.vis_texture,
-            .compute_pipelines = input.compute_pipelines,
-        });
-
-    return RenderOutput {
-        .color_output = material_output.color_texture,
-    };
+        return RenderOutput {
+            .color_output = material_output.color_texture,
+        };
+    }
 }
 
 } // namespace tundra::renderer::software

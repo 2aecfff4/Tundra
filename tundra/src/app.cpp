@@ -23,7 +23,7 @@ namespace tundra {
 //////////////////////////////////////////////////////////////////////////
 // App
 
-static constexpr f32 Z_NEAR = 0.001;
+static constexpr f32 Z_NEAR = 0.0001;
 static constexpr f32 FOV = 70.f;
 
 App::App() noexcept
@@ -70,15 +70,20 @@ void App::loop() noexcept
         glfwPollEvents();
 
         const f32 delta_time = timer.get_delta_time();
+        timer.tick();
         {
             TNDR_PROFILER_TRACE("App::loop::tick");
             m_camera.update();
             this->tick(delta_time);
         }
 
-        timer.tick();
         m_frame_counter += 1;
     }
+}
+
+void App::set_window_name(const std::string& window_name) noexcept
+{
+    glfwSetWindowTitle(m_window, window_name.c_str());
 }
 
 rhi::SwapchainHandle App::get_swapchain() const noexcept
@@ -173,6 +178,8 @@ void App::key_callback(GLFWwindow* window, int key, int scancode, int action, in
             }
         }
     }
+
+    app->on_key_press(key, action);
 }
 
 void App::cursor_pos_callback(GLFWwindow* window, double xpos, double ypos)

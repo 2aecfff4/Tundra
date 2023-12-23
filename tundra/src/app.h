@@ -106,6 +106,12 @@ public:
 
 protected:
     virtual void tick(const f32 delta_time) noexcept = 0;
+    virtual void on_key_press([[maybe_unused]] int key, [[maybe_unused]] int action)
+    {
+    }
+
+protected:
+    void set_window_name(const std::string& window_name) noexcept;
 
 protected:
     [[nodiscard]] rhi::SwapchainHandle get_swapchain() const noexcept;

@@ -1,9 +1,15 @@
 #include "app.h"
+#include "core/logger.h"
 #include "core/module/module_manager.h"
 #include "core/std/containers/hash_map.h"
 #include "core/std/defer.h"
+#include "core/std/option.h"
+#include "core/std/panic.h"
 #include "core/std/unique_ptr.h"
+#include "core/std/utils.h"
+#include "core/std/variant.h"
 #include "core/typedefs.h"
+#include "fmt/core.h"
 #include "globals/globals.h"
 #include "math/quat.h"
 #include "math/transform.h"
@@ -35,6 +41,7 @@ private:
 
 private:
     renderer::frame_graph::FrameGraph m_frame_graph;
+    renderer::RendererType m_renderer_type = renderer::RendererType::Software;
 
 private:
     rhi::BufferHandle m_mesh_descriptors_buffer;
@@ -52,6 +59,7 @@ private:
 
 private:
     u64 m_frame_index = 0;
+    bool m_show_meshlets = false;
 
 public:
     MeshletApp() noexcept
@@ -120,7 +128,8 @@ public:
             });
         }
 
-        m_camera.translate(math::Vec3 { 0, 1, -8 });
+        m_camera.translate({ -2.6f, 1.8f, 2.7f });
+        // m_camera.translate(math::Vec3 { 0, 1, -8 });
 
         this->upload_mesh();
         this->create_pipelines();
@@ -134,6 +143,33 @@ public:
 
         for (const auto& [_, pipeline] : m_graphics_pipelines) {
             globals::g_rhi_context->destroy_graphics_pipeline(pipeline);
+        }
+    }
+
+protected:
+    virtual void on_key_press(int key, int action) override
+    {
+        switch (key) {
+            case GLFW_KEY_1: {
+                m_renderer_type = renderer::RendererType::Hardware;
+                break;
+            }
+            case GLFW_KEY_2: {
+                m_renderer_type = renderer::RendererType::Software;
+                break;
+            }
+            case GLFW_KEY_3: {
+                m_renderer_type = renderer::RendererType::MeshShaders;
+                break;
+            }
+            case GLFW_KEY_F1: {
+                if (action == GLFW_PRESS) {
+                    m_show_meshlets = !m_show_meshlets;
+                }
+                break;
+            }
+            default:
+                break;
         }
     }
 
@@ -319,8 +355,11 @@ private:
     void create_pipelines() noexcept
     {
         const auto read_file = [](const core::String& path) -> core::Array<char> {
+            tndr_info("Loading file `{}`...", path);
             std::ifstream file(path, std::ios::binary | std::ios::ate);
-            tndr_assert(file.is_open(), "");
+            if (!file.is_open()) {
+                core::panic("file `{}` not found.", path);
+            }
             core::Array<char> buffer(static_cast<usize>(file.tellg()));
             file.seekg(0);
             file.read(buffer.data(), static_cast<std::streamsize>(buffer.capacity()));
@@ -331,85 +370,137 @@ private:
         static constexpr const char* PATH_PREFIX = "assets/shaders/";
 
         for (const auto& [name, pipeline_info] : pipelines::get_pipelines()) {
-            core::visit(
-                core::make_overload(
-                    [&, name = name](const pipelines::Compute&) {
-                        const std::string& shader_path = fmt::format(
-                            "{}{}.comp.hlsl.spv", PATH_PREFIX, name);
+            const auto visitor = core::make_overload(
+                [&, name = name](const pipelines::Compute&) {
+                    const std::string& shader_path = fmt::format(
+                        "{}{}.comp.hlsl.spv", PATH_PREFIX, name);
 
-                        const core::Array<char> shader_buffer = read_file(shader_path);
-                        const rhi::ShaderHandle shader =
-                            globals::g_rhi_context->create_shader(rhi::ShaderCreateInfo {
-                                .shader_stage = rhi::ShaderStage::ComputeShader,
-                                .shader_buffer = core::as_span(shader_buffer),
-                            });
-                        tndr_defer {
-                            globals::g_rhi_context->destroy_shader(shader);
-                        };
-
-                        const rhi::ComputePipelineHandle pipeline =
-                            globals::g_rhi_context->create_compute_pipeline(
-                                rhi::ComputePipelineCreateInfo {
-                                    .compute_shader = shader,
-                                    .name = name,
-                                });
-
-                        m_compute_pipelines.insert({
-                            name,
-                            pipeline,
+                    const core::Array<char> shader_buffer = read_file(shader_path);
+                    const rhi::ShaderHandle shader = globals::g_rhi_context->create_shader(
+                        rhi::ShaderCreateInfo {
+                            .shader_stage = rhi::ShaderStage::ComputeShader,
+                            .shader_buffer = core::as_span(shader_buffer),
                         });
-                    },
-                    [&, name = name](const pipelines::Graphics& g) {
-                        const std::string& shader_path = fmt::format(
-                            "{}{}", PATH_PREFIX, name);
 
-                        core::Array<char> shader_buffer = read_file(
-                            shader_path + ".frag.hlsl.spv");
-                        const rhi::ShaderHandle frag =
-                            globals::g_rhi_context->create_shader(rhi::ShaderCreateInfo {
-                                .shader_stage = rhi::ShaderStage::FragmentShader,
-                                .shader_buffer = core::as_span(shader_buffer),
+                    const rhi::ComputePipelineHandle pipeline =
+                        globals::g_rhi_context->create_compute_pipeline(
+                            rhi::ComputePipelineCreateInfo {
+                                .compute_shader = shader,
+                                .name = name,
                             });
-                        tndr_defer {
-                            globals::g_rhi_context->destroy_shader(frag);
-                        };
 
-                        shader_buffer = read_file(shader_path + ".vert.hlsl.spv");
-                        const rhi::ShaderHandle vert =
-                            globals::g_rhi_context->create_shader(rhi::ShaderCreateInfo {
-                                .shader_stage = rhi::ShaderStage::VertexShader,
-                                .shader_buffer = core::as_span(shader_buffer),
-                            });
-                        tndr_defer {
-                            globals::g_rhi_context->destroy_shader(vert);
-                        };
+                    m_compute_pipelines.insert({
+                        name,
+                        pipeline,
+                    });
 
-                        const core::Array<rhi::ColorBlendDesc> attachments {
-                            rhi::ColorBlendDesc {
-                                .mask = rhi::ColorWriteMask::RGBA,
-                                .format = rhi::TextureFormat::R8_G8_B8_A8_UNORM,
+                    tndr_info("Pipeline {} has been created.", name);
+                },
+                [&, name = name](const pipelines::Graphics& g) {
+                    rhi::GraphicsPipelineShaders::Kind shaders = core::visit(
+                        core::make_overload(
+                            [&](const pipelines::GraphicShaders::VertexShaders& vs)
+                                -> rhi::GraphicsPipelineShaders::Kind {
+                                core::Array<char> shader_buffer = read_file(fmt::format(
+                                    "{}{}.hlsl.spv", PATH_PREFIX, vs.vertex_shader));
+
+                                rhi::ShaderHandle vert =
+                                    globals::g_rhi_context->create_shader(
+                                        rhi::ShaderCreateInfo {
+                                            .shader_stage = rhi::ShaderStage::VertexShader,
+                                            .shader_buffer = core::as_span(shader_buffer),
+                                        });
+
+                                core::Option<rhi::ShaderHandle> frag;
+                                if (vs.fragment_shader) {
+                                    shader_buffer = read_file(fmt::format(
+                                        "{}{}.hlsl.spv",
+                                        PATH_PREFIX,
+                                        *vs.fragment_shader));
+                                    frag = globals::g_rhi_context->create_shader(
+                                        rhi::ShaderCreateInfo {
+                                            .shader_stage =
+                                                rhi::ShaderStage::FragmentShader,
+                                            .shader_buffer = core::as_span(shader_buffer),
+                                        });
+                                }
+
+                                return rhi::GraphicsPipelineShaders::VertexShaders {
+                                    .vertex_shader = vert,
+                                    .fragment_shader = frag,
+                                };
                             },
-                        };
+                            [&](const pipelines::GraphicShaders::MeshShaders& mesh_shaders)
+                                -> rhi::GraphicsPipelineShaders::Kind {
+                                core::Array<char> shader_buffer;
 
-                        const rhi::GraphicsPipelineCreateInfo create_info {
-                            .input_assembly = g.input_assembly,
-                            .rasterizer_state = g.rasterizer_state,
-                            .depth_stencil = g.depth_stencil,
-                            .color_blend_state = g.color_blend_state,
-                            .vertex_shader = vert,
-                            .fragment_shader = frag,
-                            .name = name,
-                        };
+                                core::Option<rhi::ShaderHandle> task;
+                                if (mesh_shaders.task_shader) {
+                                    shader_buffer = read_file(fmt::format(
+                                        "{}{}.hlsl.spv",
+                                        PATH_PREFIX,
+                                        *mesh_shaders.task_shader));
+                                    task = globals::g_rhi_context->create_shader(
+                                        rhi::ShaderCreateInfo {
+                                            .shader_stage = rhi::ShaderStage::TaskShader,
+                                            .shader_buffer = core::as_span(shader_buffer),
+                                        });
+                                }
 
-                        const rhi::GraphicsPipelineHandle pipeline =
-                            globals::g_rhi_context->create_graphics_pipeline(create_info);
+                                shader_buffer = read_file(fmt::format(
+                                    "{}{}.hlsl.spv",
+                                    PATH_PREFIX,
+                                    mesh_shaders.mesh_shader));
 
-                        m_graphics_pipelines.insert({
-                            name,
-                            pipeline,
-                        });
-                    }),
-                pipeline_info);
+                                rhi::ShaderHandle mesh =
+                                    globals::g_rhi_context->create_shader(
+                                        rhi::ShaderCreateInfo {
+                                            .shader_stage = rhi::ShaderStage::MeshShader,
+                                            .shader_buffer = core::as_span(shader_buffer),
+                                        });
+
+                                core::Option<rhi::ShaderHandle> frag;
+                                if (mesh_shaders.fragment_shader) {
+                                    shader_buffer = read_file(fmt::format(
+                                        "{}{}.hlsl.spv",
+                                        PATH_PREFIX,
+                                        *mesh_shaders.fragment_shader));
+                                    frag = globals::g_rhi_context->create_shader(
+                                        rhi::ShaderCreateInfo {
+                                            .shader_stage =
+                                                rhi::ShaderStage::FragmentShader,
+                                            .shader_buffer = core::as_span(shader_buffer),
+                                        });
+                                }
+
+                                return rhi::GraphicsPipelineShaders::MeshShaders {
+                                    .task_shader = task,
+                                    .mesh_shader = mesh,
+                                    .fragment_shader = frag,
+                                };
+                            }),
+                        g.shaders);
+
+                    const rhi::GraphicsPipelineCreateInfo create_info {
+                        .input_assembly = g.input_assembly,
+                        .rasterizer_state = g.rasterizer_state,
+                        .depth_stencil = g.depth_stencil,
+                        .color_blend_state = g.color_blend_state,
+                        .shaders = shaders,
+                        .name = name,
+                    };
+
+                    const rhi::GraphicsPipelineHandle pipeline =
+                        globals::g_rhi_context->create_graphics_pipeline(create_info);
+
+                    m_graphics_pipelines.insert({
+                        name,
+                        pipeline,
+                    });
+
+                    tndr_info("Pipeline {} has been created.", name);
+                });
+            core::visit(visitor, pipeline_info);
         }
     }
 
@@ -438,9 +529,10 @@ protected:
         const f32 z_near = 0.01f;
 
         const renderer::RenderOutput render_output = renderer::render(
-            renderer::RendererType::Software,
+            m_renderer_type,
             m_frame_graph,
             renderer::RenderInput {
+                .show_meshlets = m_show_meshlets,
                 .world_to_view = m_camera.view,
                 .view_to_clip = m_camera.projection,
                 .camera_position = m_camera.position,
@@ -460,6 +552,23 @@ protected:
         m_frame_graph.compile();
         m_frame_graph.execute(globals::g_rhi_context);
         m_frame_graph.reset();
+
+        const f32 fps = 1000.f / delta_time;
+        const char* type = [&] {
+            switch (m_renderer_type) {
+                case renderer::RendererType::Hardware:
+                    return "Hardware";
+                case renderer::RendererType::Software:
+                    return "Software";
+                case renderer::RendererType::MeshShaders:
+                    return "MeshShaders";
+                    break;
+            }
+
+            core::unreachable();
+        }();
+
+        this->set_window_name(fmt::format("{} | fps: {}", type, fps));
     }
 };
 
@@ -493,6 +602,5 @@ int main(const int argc, const char* argv[])
     rhi_context.reset();
     rhi_module = nullptr;
     core::ModuleManager::get().unload_all_modules();
-
     glfwTerminate();
 }
