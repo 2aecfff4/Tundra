@@ -24,6 +24,20 @@ struct IndexBufferGeneratorInitUbo {
     const uint num_visible_meshlets //
         = tundra::buffer_load<false, uint>(ubo.in_.num_visible_meshlets_srv, 0, 0);
 
+    for (uint i = 0; i < ubo.in_.num_loops; ++i) {
+        tundra::buffer_store<false>(
+            ubo.out_.index_generator_dispatch_indirect_commands_uav,
+            0,
+            i,
+            DispatchIndirectCommand::create(0, 1, 1));
+
+        tundra::buffer_store<false>(
+            ubo.out_.meshlet_offsets_uav, //
+            0,
+            0,
+            0);
+    }
+
     const uint NUM_MESHLETS = (8192 * 4);
 
     const uint num_iterations = num_visible_meshlets / NUM_MESHLETS;
