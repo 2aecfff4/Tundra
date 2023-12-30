@@ -861,15 +861,15 @@ void VulkanCommandDecoder::texture_barrier(
         m_resources.add_reference(
             *m_managers.resource_tracker, barrier.texture.get_handle().get_id());
 
-        tndr_assert(
-            m_managers.texture_manager
-                ->with(
-                    barrier.texture.get_handle(),
-                    [&](const VulkanTexture& texture) {
-                        m_barrier.texture_barrier(texture, barrier);
-                    })
-                .has_value(),
-            "`TextureBarrier::texture` is not alive.");
+        [[maybe_unused]] const bool is_valid //
+            = m_managers.texture_manager
+                  ->with(
+                      barrier.texture.get_handle(),
+                      [&](const VulkanTexture& texture) {
+                          m_barrier.texture_barrier(texture, barrier);
+                      })
+                  .has_value();
+        tndr_assert(is_valid, "`TextureBarrier::texture` is not alive.");
     }
 
     m_barrier.execute(m_bundle.command_buffer);
@@ -1013,15 +1013,15 @@ void VulkanCommandDecoder::buffer_barrier(
         m_resources.add_reference(
             *m_managers.resource_tracker, barrier.buffer.get_handle().get_id());
 
-        tndr_assert(
-            m_managers.buffer_manager
-                ->with(
-                    barrier.buffer.get_handle(),
-                    [&](const VulkanBuffer& buffer) {
-                        m_barrier.buffer_barrier(buffer, barrier);
-                    })
-                .has_value(),
-            "`TextureBarrier::texture` is not alive.");
+        [[maybe_unused]] const bool is_valid //
+            = m_managers.buffer_manager
+                  ->with(
+                      barrier.buffer.get_handle(),
+                      [&](const VulkanBuffer& buffer) {
+                          m_barrier.buffer_barrier(buffer, barrier);
+                      })
+                  .has_value();
+        tndr_assert(is_valid, "`TextureBarrier::texture` is not alive.");
     }
 
     m_barrier.execute(m_bundle.command_buffer);

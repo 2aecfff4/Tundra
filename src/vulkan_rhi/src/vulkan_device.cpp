@@ -267,13 +267,13 @@ void VulkanDevice::update_buffer(
     const rhi::BufferHandle handle,
     const core::Array<rhi::BufferUpdateRegion>& update_regions) noexcept
 {
-    tndr_assert(
-        m_managers.buffer_manager
-            ->with_mut(
-                handle.get_handle(),
-                [&](VulkanBuffer& buffer) { buffer.update_buffer(update_regions); })
-            .has_value(),
-        "`handle` is not valid!");
+    [[maybe_unused]] const bool is_valid //
+        = m_managers.buffer_manager
+              ->with_mut(
+                  handle.get_handle(),
+                  [&](VulkanBuffer& buffer) { buffer.update_buffer(update_regions); })
+              .has_value();
+    tndr_assert(is_valid, "`handle` is not valid!");
 }
 
 void VulkanDevice::destroy_buffer(const rhi::BufferHandle handle) noexcept
