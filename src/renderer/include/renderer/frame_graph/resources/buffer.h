@@ -18,7 +18,7 @@ using MemoryType = rhi::MemoryType;
 
 ///
 struct RENDERER_API BufferCreateInfo {
-    BufferUsageFlags usage = BufferUsageFlags::SRV;
+    BufferUsageFlags usage = BufferUsageFlags::STORAGE_BUFFER;
     MemoryType memory_type = MemoryType::GPU;
     /// `size` **must** be greater than `0`.
     u64 size = 0;

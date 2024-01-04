@@ -5,6 +5,7 @@
 #include "core/std/containers/string.h"
 #include "renderer/frame_graph/render_pass.h"
 #include "renderer/frame_graph/resources/buffer.h"
+#include "renderer/frame_graph/resources/enums.h"
 #include "renderer/frame_graph/resources/handle.h"
 #include "renderer/frame_graph/resources/texture.h"
 
@@ -28,23 +29,29 @@ public:
         const core::String& name, const BufferCreateInfo& create_info) noexcept;
 
 public:
-    template <u32 Id>
-    Handle<Id> read(const Handle<Id> handle, const ResourceUsage resource_usage) noexcept
+    ///
+    template <ResourceType Type, typename ResourceUsage>
+    Handle<Type, ResourceUsage> read(
+        const Handle<Type, ResourceUsage> handle,
+        const ResourceUsage resource_usage) noexcept
     {
         tndr_assert(
             handle.is_valid(),
             "The handle is invalid. Most likely it is just not initialized.");
-        this->read_impl(handle.handle, resource_usage);
+        this->read_impl(handle.handle, to_resource_usage(resource_usage));
         return handle;
     }
 
-    template <u32 Id>
-    Handle<Id> write(const Handle<Id> handle, const ResourceUsage resource_usage) noexcept
+    ///
+    template <ResourceType Type, typename ResourceUsage>
+    Handle<Type, ResourceUsage> write(
+        const Handle<Type, ResourceUsage> handle,
+        const ResourceUsage resource_usage) noexcept
     {
         tndr_assert(
             handle.is_valid(),
             "The handle is invalid. Most likely it is just not initialized.");
-        this->write_impl(handle.handle, resource_usage);
+        this->write_impl(handle.handle, to_resource_usage(resource_usage));
         return handle;
     }
 

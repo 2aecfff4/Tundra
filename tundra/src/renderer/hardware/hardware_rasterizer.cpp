@@ -197,7 +197,7 @@ RenderMeshletsOutput render_meshlets(
                                  frame_graph::TextureUsageFlags::PRESENT,
                         .tiling = frame_graph::TextureTiling::Optimal,
                     }),
-                frame_graph::ResourceUsage::COLOR_ATTACHMENT);
+                frame_graph::TextureResourceUsage::COLOR_ATTACHMENT);
 
             data.depth_buffer = builder.write(
                 builder.create_texture(
@@ -213,7 +213,7 @@ RenderMeshletsOutput render_meshlets(
                         .usage = frame_graph::TextureUsageFlags::DEPTH_ATTACHMENT,
                         .tiling = frame_graph::TextureTiling::Optimal,
                     }),
-                frame_graph::ResourceUsage::DEPTH_STENCIL_ATTACHMENT);
+                frame_graph::TextureResourceUsage::DEPTH_STENCIL_ATTACHMENT);
 
             render_pass.color_attachments.push_back(frame_graph::ColorAttachment {
                 .ops = frame_graph::AttachmentOps::INIT,
@@ -231,34 +231,42 @@ RenderMeshletsOutput render_meshlets(
             };
 
             data.visible_meshlets_count = builder.read(
-                input.visible_meshlets_count, frame_graph::ResourceUsage::SHADER_COMPUTE);
+                input.visible_meshlets_count,
+                frame_graph::BufferResourceUsage::COMPUTE_STORAGE_BUFFER);
 
             data.meshlet_offsets = builder.read(
-                input.meshlet_offsets, frame_graph::ResourceUsage::SHADER_COMPUTE);
+                input.meshlet_offsets,
+                frame_graph::BufferResourceUsage::COMPUTE_STORAGE_BUFFER);
             data.meshlet_offsets = builder.write(
-                input.meshlet_offsets, frame_graph::ResourceUsage::SHADER_COMPUTE);
+                input.meshlet_offsets,
+                frame_graph::BufferResourceUsage::COMPUTE_STORAGE_BUFFER);
 
             data.num_visible_meshlets = builder.read(
-                input.num_visible_meshlets, frame_graph::ResourceUsage::SHADER_COMPUTE);
+                input.num_visible_meshlets,
+                frame_graph::BufferResourceUsage::COMPUTE_STORAGE_BUFFER);
 
             data.index_generator_dispatch_indirect_commands = builder.write(
                 input.index_generator_dispatch_indirect_commands,
-                frame_graph::ResourceUsage::SHADER_COMPUTE);
+                frame_graph::BufferResourceUsage::COMPUTE_STORAGE_BUFFER);
 
             data.visible_meshlets = builder.read(
-                input.visible_meshlets, frame_graph::ResourceUsage::SHADER_COMPUTE);
+                input.visible_meshlets,
+                frame_graph::BufferResourceUsage::COMPUTE_STORAGE_BUFFER);
 
             data.index_buffer = builder.write(
-                input.index_buffer, frame_graph::ResourceUsage::SHADER_COMPUTE);
+                input.index_buffer,
+                frame_graph::BufferResourceUsage::COMPUTE_STORAGE_BUFFER);
             data.visible_indices_count = builder.write(
-                input.visible_indices_count, frame_graph::ResourceUsage::SHADER_COMPUTE);
+                input.visible_indices_count,
+                frame_graph::BufferResourceUsage::COMPUTE_STORAGE_BUFFER);
 
             data.draw_meshlets_draw_args = builder.write(
                 input.draw_meshlets_draw_args,
-                frame_graph::ResourceUsage::SHADER_COMPUTE);
+                frame_graph::BufferResourceUsage::COMPUTE_STORAGE_BUFFER);
 
             data.draw_count = builder.write(
-                input.draw_count, frame_graph::ResourceUsage::SHADER_COMPUTE);
+                input.draw_count,
+                frame_graph::BufferResourceUsage::COMPUTE_STORAGE_BUFFER);
 
             return data;
         },
@@ -314,8 +322,8 @@ RenderMeshletsOutput render_meshlets(
                 }
 
                 encoder.global_barrier(rhi::GlobalBarrier {
-                    .previous_access = rhi::AccessFlags::UAV_COMPUTE,
-                    .next_access = rhi::AccessFlags::UAV_COMPUTE,
+                    .previous_access = rhi::GlobalAccessFlags::ALL,
+                    .next_access = rhi::GlobalAccessFlags::ALL,
                 });
 
                 {
@@ -499,8 +507,8 @@ RenderMeshletsOutput render_meshlets(
 
             const auto global_barrier = [&] {
                 encoder.global_barrier(rhi::GlobalBarrier {
-                    .previous_access = rhi::AccessFlags::GENERAL,
-                    .next_access = rhi::AccessFlags::GENERAL,
+                    .previous_access = rhi::GlobalAccessFlags::ALL,
+                    .next_access = rhi::GlobalAccessFlags::ALL,
                 });
             };
             global_barrier();
@@ -535,22 +543,18 @@ RenderMeshletsOutput render_meshlets(
                 {
                     global_barrier();
                     encoder.global_barrier(rhi::GlobalBarrier {
-                        .previous_access = rhi::AccessFlags::UAV_COMPUTE |
-                                           rhi::AccessFlags::SRV_COMPUTE |
-                                           rhi::AccessFlags::INDIRECT_BUFFER |
-                                           rhi::AccessFlags::INDEX_BUFFER,
-                        .next_access = rhi::AccessFlags::UAV_COMPUTE |
-                                       rhi::AccessFlags::SRV_COMPUTE |
-                                       rhi::AccessFlags::INDIRECT_BUFFER,
+                        .previous_access = rhi::GlobalAccessFlags::COMPUTE_STORAGE_BUFFER |
+                                           rhi::GlobalAccessFlags::INDIRECT_BUFFER |
+                                           rhi::GlobalAccessFlags::INDEX_BUFFER,
+                        .next_access = rhi::GlobalAccessFlags::COMPUTE_STORAGE_BUFFER |
+                                       rhi::GlobalAccessFlags::INDIRECT_BUFFER,
                     });
                     index_buffer_generator(i);
                     encoder.global_barrier(rhi::GlobalBarrier {
-                        .previous_access = rhi::AccessFlags::UAV_COMPUTE |
-                                           rhi::AccessFlags::SRV_COMPUTE |
-                                           rhi::AccessFlags::INDIRECT_BUFFER,
-                        .next_access = rhi::AccessFlags::UAV_COMPUTE |
-                                       rhi::AccessFlags::SRV_COMPUTE |
-                                       rhi::AccessFlags::INDIRECT_BUFFER,
+                        .previous_access = rhi::GlobalAccessFlags::COMPUTE_STORAGE_BUFFER |
+                                           rhi::GlobalAccessFlags::INDIRECT_BUFFER,
+                        .next_access = rhi::GlobalAccessFlags::COMPUTE_STORAGE_BUFFER |
+                                       rhi::GlobalAccessFlags::INDIRECT_BUFFER,
                     });
                     global_barrier();
                 }
@@ -559,14 +563,12 @@ RenderMeshletsOutput render_meshlets(
                     global_barrier();
                     generate_draw_indirect_commands();
                     encoder.global_barrier(rhi::GlobalBarrier {
-                        .previous_access = rhi::AccessFlags::UAV_COMPUTE |
-                                           rhi::AccessFlags::SRV_COMPUTE |
-                                           rhi::AccessFlags::INDIRECT_BUFFER |
-                                           rhi::AccessFlags::GENERAL,
-                        .next_access = rhi::AccessFlags::UAV_COMPUTE |
-                                       rhi::AccessFlags::SRV_COMPUTE |
-                                       rhi::AccessFlags::INDIRECT_BUFFER |
-                                       rhi::AccessFlags::INDEX_BUFFER,
+                        .previous_access = rhi::GlobalAccessFlags::COMPUTE_STORAGE_BUFFER |
+                                           rhi::GlobalAccessFlags::INDIRECT_BUFFER |
+                                           rhi::GlobalAccessFlags::ALL,
+                        .next_access = rhi::GlobalAccessFlags::COMPUTE_STORAGE_BUFFER |
+                                       rhi::GlobalAccessFlags::INDIRECT_BUFFER |
+                                       rhi::GlobalAccessFlags::INDEX_BUFFER,
                     });
                     global_barrier();
                 }
@@ -629,15 +631,15 @@ RenderOutput hardware_rasterizer(
             const auto ubo_buffer = builder.create_buffer(
                 "ubo_buffer",
                 frame_graph::BufferCreateInfo {
-                    .usage = frame_graph::BufferUsageFlags::SRV,
+                    .usage = frame_graph::BufferUsageFlags::STORAGE_BUFFER,
                     .memory_type = frame_graph::MemoryType::Dynamic,
                     .size = ubo_size,
                 });
 
             builder.write(
                 ubo_buffer,
-                frame_graph::ResourceUsage::SHADER_COMPUTE |
-                    frame_graph::ResourceUsage::SHADER_GRAPHICS);
+                frame_graph::BufferResourceUsage::COMPUTE_STORAGE_BUFFER |
+                    frame_graph::BufferResourceUsage::GRAPHICS_STORAGE_BUFFER);
 
             return UboData {
                 .ubo_buffer = core::make_shared<UboBuffer>(ubo_buffer, ubo_size),

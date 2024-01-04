@@ -59,14 +59,16 @@ MeshShaderOutput mesh_shader(
 
             data.command_count //
                 = builder.read(
-                    data.command_count, frame_graph::ResourceUsage::SHADER_GRAPHICS);
+                    data.command_count,
+                    frame_graph::BufferResourceUsage::COMPUTE_STORAGE_BUFFER);
             data.command_buffer //
                 = builder.read(
-                    data.command_buffer, frame_graph::ResourceUsage::SHADER_GRAPHICS);
+                    data.command_buffer,
+                    frame_graph::BufferResourceUsage::COMPUTE_STORAGE_BUFFER);
             data.task_shader_dispatch_args //
                 = builder.read(
                     data.task_shader_dispatch_args,
-                    frame_graph::ResourceUsage::INDIRECT_BUFFER);
+                    frame_graph::BufferResourceUsage::INDIRECT_BUFFER);
 
             data.visibility_buffer = builder.write(
                 builder.create_texture(
@@ -84,7 +86,7 @@ MeshShaderOutput mesh_shader(
                                  frame_graph::TextureUsageFlags::PRESENT,
                         .tiling = frame_graph::TextureTiling::Optimal,
                     }),
-                frame_graph::ResourceUsage::COLOR_ATTACHMENT);
+                frame_graph::TextureResourceUsage::COLOR_ATTACHMENT);
 
             data.depth_buffer = builder.write(
                 builder.create_texture(
@@ -100,7 +102,7 @@ MeshShaderOutput mesh_shader(
                         .usage = frame_graph::TextureUsageFlags::DEPTH_ATTACHMENT,
                         .tiling = frame_graph::TextureTiling::Optimal,
                     }),
-                frame_graph::ResourceUsage::DEPTH_STENCIL_ATTACHMENT);
+                frame_graph::TextureResourceUsage::DEPTH_STENCIL_ATTACHMENT);
 
             render_pass.color_attachments.push_back(frame_graph::ColorAttachment {
                 .ops = frame_graph::AttachmentOps::INIT,

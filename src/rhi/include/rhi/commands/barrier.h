@@ -12,15 +12,17 @@ namespace tundra::rhi {
 
 ///
 struct RHI_API GlobalBarrier {
-    AccessFlags previous_access = AccessFlags::ANY_WRITE;
-    AccessFlags next_access = AccessFlags::GENERAL;
+    static const GlobalBarrier FULL_BARRIER;
+
+    GlobalAccessFlags previous_access = GlobalAccessFlags::NONE;
+    GlobalAccessFlags next_access = GlobalAccessFlags::NONE;
 };
 
 ///
 struct RHI_API TextureBarrier {
     TextureHandle texture;
-    AccessFlags previous_access = AccessFlags::ANY_WRITE;
-    AccessFlags next_access = AccessFlags::GENERAL;
+    TextureAccessFlags previous_access = TextureAccessFlags::NONE;
+    TextureAccessFlags next_access = TextureAccessFlags::NONE;
     core::Option<QueueType> source_queue;
     core::Option<QueueType> destination_queue;
     TextureSubresourceRange subresource_range;
@@ -30,8 +32,8 @@ struct RHI_API TextureBarrier {
 ///
 struct RHI_API BufferBarrier {
     BufferHandle buffer;
-    AccessFlags previous_access = AccessFlags::ANY_WRITE;
-    AccessFlags next_access = AccessFlags::GENERAL;
+    BufferAccessFlags previous_access = BufferAccessFlags::NONE;
+    BufferAccessFlags next_access = BufferAccessFlags::NONE;
     core::Option<QueueType> source_queue;
     core::Option<QueueType> destination_queue;
     BufferSubresourceRange subresource_range;

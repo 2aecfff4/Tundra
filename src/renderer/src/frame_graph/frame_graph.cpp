@@ -5,8 +5,11 @@
 #include "core/std/panic.h"
 #include "core/std/tuple.h"
 #include "renderer/frame_graph/resources/buffer.h"
+#include "renderer/frame_graph/resources/enums.h"
 #include "renderer/frame_graph/resources/texture.h"
 #include "rhi/commands/command_encoder.h"
+#include "rhi/resources/access_flags.h"
+#include "rhi/resources/texture.h"
 #include "rhi/rhi_context.h"
 #include <algorithm>
 #include <random>
@@ -81,7 +84,7 @@ static math::Vec3 get_random_color() noexcept
         case QueueType::Transfer:
             return rhi::SynchronizationStage::TRANSFER;
         case QueueType::Present:
-            return rhi::SynchronizationStage::BOTTOM_OF_PIPE;
+            return rhi::SynchronizationStage::ALL_COMMANDS;
         default:
             core::unreachable();
     }
@@ -470,7 +473,7 @@ void FrameGraph::build_barriers() noexcept
 
         const LastResourceUsage& last_resource_use = it->second;
 
-        return map_resource_usage(last_resource_use.usage, last_resource_use.is_written);
+        return core::make_tuple(last_resource_use.usage, last_resource_use.is_written);
     };
 
     for (const FrameGraph::DependencyLevel& dependency_level : m_dependency_levels) {
@@ -668,10 +671,10 @@ void FrameGraph::build_barriers() noexcept
                         m_resources[static_cast<usize>(resource_id)]->get_resource_type();
                     switch (resource_type) {
                         case ResourceType::Texture: {
-                            const rhi::AccessFlags previous_access = map_resource_usage(
-                                ResourceUsage::NONE, false);
-                            const rhi::AccessFlags next_access = map_resource_usage(
-                                all_resource_usage, is_written);
+                            const rhi::TextureAccessFlags previous_access //
+                                = to_texture_access_flags(ResourceUsage::NONE, false);
+                            const rhi::TextureAccessFlags next_access //
+                                = to_texture_access_flags(all_resource_usage, is_written);
 
                             core::Array<TextureBarrier>& texture_barriers =
                                 m_render_passes_barriers[static_cast<usize>(pass_id)]
@@ -719,9 +722,14 @@ void FrameGraph::build_barriers() noexcept
                     tndr_assert(
                         resources_used.contains(color_attachment_resource_id), "");
 
+                    const auto [usage, write] //
+                        = get_access_flags(color_attachment_resource_id);
+                    const rhi::TextureAccessFlags texture_access //
+                        = to_texture_access_flags(usage, write);
+
                     rhi_render_pass.color_attachments.push_back(rhi::ColorAttachment {
                         .ops = fg_color_attachment.ops,
-                        .texture_access = get_access_flags(color_attachment_resource_id),
+                        .texture_access = texture_access,
                         .clear_value = fg_color_attachment.clear_value,
                     });
 
@@ -734,10 +742,14 @@ void FrameGraph::build_barriers() noexcept
                             resources_used.contains(color_attachment_resolve_resource_id),
                             "");
 
+                        const auto [usage, write] //
+                            = get_access_flags(color_attachment_resolve_resource_id);
+                        const rhi::TextureAccessFlags texture_access //
+                            = to_texture_access_flags(usage, write);
+
                         rhi_render_pass.color_attachments.back()
                             .resolve_texture = rhi::ResolveTexture {
-                            .texture_access = get_access_flags(
-                                color_attachment_resolve_resource_id),
+                            .texture_access = texture_access,
                         };
                     }
                 }
@@ -754,12 +766,16 @@ void FrameGraph::build_barriers() noexcept
                         resources_used.contains(depth_stencil_attachment_resource_id),
                         "");
 
+                    const auto [usage, write] //
+                        = get_access_flags(depth_stencil_attachment_resource_id);
+                    const rhi::TextureAccessFlags texture_access //
+                        = to_texture_access_flags(usage, write);
+
                     rhi_render_pass
                         .depth_stencil_attachment = rhi::DepthStencilAttachment {
                         .ops = fg_depth_stencil_attachment.ops,
                         .stencil_ops = fg_depth_stencil_attachment.stencil_ops,
-                        .texture_access = get_access_flags(
-                            depth_stencil_attachment_resource_id),
+                        .texture_access = texture_access,
                         .clear_value = fg_depth_stencil_attachment.clear_value,
                     };
 
@@ -773,10 +789,15 @@ void FrameGraph::build_barriers() noexcept
                                 depth_stencil_attachment_resolve_resource_id),
                             "");
 
+                        const auto [usage, write] //
+                            = get_access_flags(
+                                depth_stencil_attachment_resolve_resource_id);
+                        const rhi::TextureAccessFlags texture_access //
+                            = to_texture_access_flags(usage, write);
+
                         rhi_render_pass.depth_stencil_attachment
                             ->resolve_texture = rhi::ResolveTexture {
-                            .texture_access = get_access_flags(
-                                depth_stencil_attachment_resolve_resource_id),
+                            .texture_access = texture_access,
                         };
                     }
                 }
@@ -791,18 +812,18 @@ void FrameGraph::build_barriers() noexcept
             it != last_resources_usage.end()) {
             const LastResourceUsage& last_resource_usage = it->second;
 
-            const rhi::AccessFlags previous_access = map_resource_usage(
-                last_resource_usage.usage, last_resource_usage.is_written);
+            const rhi::TextureAccessFlags previous_access //
+                = to_texture_access_flags(
+                    last_resource_usage.usage, last_resource_usage.is_written);
 
-            const bool is_same_queue = map_queue_to_family_index(
-                                           m_queue_indices, last_resource_usage.queue) ==
-                                       map_queue_to_family_index(
-                                           m_queue_indices, QueueType::Present);
+            const bool is_same_queue //
+                = map_queue_to_family_index(m_queue_indices, last_resource_usage.queue) ==
+                  map_queue_to_family_index(m_queue_indices, QueueType::Present);
 
             if (is_same_queue) {
                 present_pass.barrier = TextureBarrier {
                     .texture = resource_id,
-                    .previous_access = get_access_flags(resource_id),
+                    .previous_access = previous_access,
                     .next_access = PresentPass::ACCESS_FLAGS,
                     .discard_contents = false,
                 };
@@ -827,7 +848,7 @@ void FrameGraph::build_barriers() noexcept
                 // Acquire barrier
                 present_pass.barrier = TextureBarrier {
                     .texture = resource_id,
-                    .previous_access = get_access_flags(resource_id),
+                    .previous_access = previous_access,
                     .next_access = PresentPass::ACCESS_FLAGS,
                     .source_queue = last_resource_usage.queue,
                     .destination_queue = QueueType::Present,
@@ -847,17 +868,22 @@ void FrameGraph::insert_barrier(
     const core::Tuple<ResourceUsage, bool>& next_usage,
     const bool discard_contents) noexcept
 {
-    const ResourceType resource_type = m_resources[static_cast<usize>(resource_id)]
-                                           ->get_resource_type();
-    const rhi::AccessFlags previous_access = map_resource_usage(
-        core::get<ResourceUsage>(previous_usage), core::get<bool>(previous_usage));
-    const rhi::AccessFlags next_access = map_resource_usage(
-        core::get<ResourceUsage>(next_usage), core::get<bool>(next_usage));
+    const ResourceType resource_type //
+        = m_resources[static_cast<usize>(resource_id)]->get_resource_type();
 
     switch (resource_type) {
         case ResourceType::Buffer: {
             // #TODO: For buffers always use global barrier, at least for now.
             // If we are only reading, then barrier is unnecessary.
+
+            const rhi::GlobalAccessFlags previous_access //
+                = to_global_access_flags(
+                    core::get<ResourceUsage>(previous_usage),
+                    core::get<bool>(previous_usage));
+            const rhi::GlobalAccessFlags next_access //
+                = to_global_access_flags(
+                    core::get<ResourceUsage>(next_usage), core::get<bool>(next_usage));
+
             if (core::get<bool>(previous_usage) || core::get<bool>(next_usage)) {
                 core::Option<GlobalBarrier>& global_barrier =
                     m_render_passes_barriers[static_cast<usize>(pass_id)]
@@ -877,6 +903,16 @@ void FrameGraph::insert_barrier(
         case ResourceType::Texture: {
             if (core::get<ResourceUsage>(previous_usage) ==
                 core::get<ResourceUsage>(next_usage)) {
+
+                const rhi::GlobalAccessFlags previous_access //
+                    = to_global_access_flags(
+                        core::get<ResourceUsage>(previous_usage),
+                        core::get<bool>(previous_usage));
+                const rhi::GlobalAccessFlags next_access //
+                    = to_global_access_flags(
+                        core::get<ResourceUsage>(next_usage),
+                        core::get<bool>(next_usage));
+
                 if (core::get<bool>(previous_usage) || core::get<bool>(next_usage)) {
                     core::Option<GlobalBarrier>& global_barrier =
                         m_render_passes_barriers[static_cast<usize>(pass_id)]
@@ -896,6 +932,15 @@ void FrameGraph::insert_barrier(
                 core::Array<TextureBarrier>& texture_barriers =
                     m_render_passes_barriers[static_cast<usize>(pass_id)]
                         .texture_barriers.before;
+
+                const rhi::TextureAccessFlags previous_access //
+                    = to_texture_access_flags(
+                        core::get<ResourceUsage>(previous_usage),
+                        core::get<bool>(previous_usage));
+                const rhi::TextureAccessFlags next_access //
+                    = to_texture_access_flags(
+                        core::get<ResourceUsage>(next_usage),
+                        core::get<bool>(next_usage));
 
                 texture_barriers.push_back(TextureBarrier {
                     .texture = resource_id,
@@ -923,13 +968,17 @@ void FrameGraph::queue_ownership_transfer(
 {
     const ResourceType resource_type = m_resources[static_cast<usize>(resource_id)]
                                            ->get_resource_type();
-    const rhi::AccessFlags previous_access = map_resource_usage(
-        core::get<ResourceUsage>(previous_usage), core::get<bool>(previous_usage));
-    const rhi::AccessFlags next_access = map_resource_usage(
-        core::get<ResourceUsage>(next_usage), core::get<bool>(next_usage));
 
     switch (resource_type) {
         case ResourceType::Buffer: {
+            const rhi::BufferAccessFlags previous_access //
+                = to_buffer_access_flags(
+                    core::get<ResourceUsage>(previous_usage),
+                    core::get<bool>(previous_usage));
+            const rhi::BufferAccessFlags next_access //
+                = to_buffer_access_flags(
+                    core::get<ResourceUsage>(next_usage), core::get<bool>(next_usage));
+
             // Release barrier
             {
                 core::Array<BufferBarrier>& buffer_barriers =
@@ -962,6 +1011,14 @@ void FrameGraph::queue_ownership_transfer(
             break;
         }
         case ResourceType::Texture: {
+            const rhi::TextureAccessFlags previous_access //
+                = to_texture_access_flags(
+                    core::get<ResourceUsage>(previous_usage),
+                    core::get<bool>(previous_usage));
+            const rhi::TextureAccessFlags next_access //
+                = to_texture_access_flags(
+                    core::get<ResourceUsage>(next_usage), core::get<bool>(next_usage));
+
             // Release barrier
             {
                 core::Array<TextureBarrier>& texture_barriers =

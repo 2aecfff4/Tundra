@@ -142,23 +142,35 @@ void end_region(
 // Barriers
 
 struct AccessInfo {
-    VkAccessFlags access_flags;
-    VkPipelineStageFlags stage_flags;
+    VkAccessFlags2 access_flags;
+    VkPipelineStageFlags2 stage_flags;
     VkImageLayout image_layout;
 };
 
 [[nodiscard]] AccessInfo get_access_info(
-    const rhi::AccessFlags flag, const bool supports_mesh_shaders) noexcept;
+    const rhi::TextureAccessFlags flag, const bool supports_mesh_shaders) noexcept;
 
-[[nodiscard]] VkImageLayout map_access_flags_to_image_layout(
-    rhi::AccessFlags flags, const bool supports_mesh_shaders) noexcept;
+[[nodiscard]] AccessInfo get_access_info(
+    const rhi::BufferAccessFlags flag, const bool supports_mesh_shaders) noexcept;
 
-[[nodiscard]] VkAccessFlags to_access_flags(const VkImageLayout image_layout) noexcept;
+[[nodiscard]] AccessInfo get_access_info(
+    const rhi::GlobalAccessFlags flag, const bool supports_mesh_shaders) noexcept;
 
-[[nodiscard]] VkPipelineStageFlags image_layout_to_pipeline_stage(
+[[nodiscard]] VkImageLayout map_texture_access_flags_to_image_layout(
+    rhi::TextureAccessFlags flags, const bool supports_mesh_shaders) noexcept;
+
+// [[nodiscard]] AccessInfo get_access_info(
+//     const rhi::AccessFlags flag, const bool supports_mesh_shaders) noexcept;
+
+// [[nodiscard]] VkImageLayout map_access_flags_to_image_layout(
+//     rhi::AccessFlags flags, const bool supports_mesh_shaders) noexcept;
+
+[[nodiscard]] VkAccessFlags2 to_access_flags(const VkImageLayout image_layout) noexcept;
+
+[[nodiscard]] VkPipelineStageFlags2 image_layout_to_pipeline_stage(
     const VkImageLayout image_layout) noexcept;
 
-[[nodiscard]] VkPipelineStageFlags map_synchronization_stage(
+[[nodiscard]] VkPipelineStageFlags2 map_synchronization_stage(
     const rhi::SynchronizationStage stage_mask) noexcept;
 
 } // namespace tundra::vulkan_rhi::helpers

@@ -50,20 +50,23 @@ struct GPURasterizeUBO {
             data.ubo_buffer = input.ubo_buffer;
 
             data.visible_meshlets = builder.read(
-                input.visible_meshlets, frame_graph::ResourceUsage::SHADER_COMPUTE);
+                input.visible_meshlets,
+                frame_graph::BufferResourceUsage::COMPUTE_STORAGE_BUFFER);
 
             data.visible_meshlets_count = builder.read(
-                input.visible_meshlets_count, frame_graph::ResourceUsage::SHADER_COMPUTE);
+                input.visible_meshlets_count,
+                frame_graph::BufferResourceUsage::COMPUTE_STORAGE_BUFFER);
 
             data.dispatch_indirect_args = builder.read(
                 input.dispatch_indirect_args,
-                frame_graph::ResourceUsage::INDIRECT_BUFFER);
+                frame_graph::BufferResourceUsage::INDIRECT_BUFFER);
 
             data.vis_texture = input.vis_texture;
             // data.vis_texture = builder.read(
             //     data.vis_texture, frame_graph::ResourceUsage::SHADER_COMPUTE);
             data.vis_texture = builder.write(
-                data.vis_texture, frame_graph::ResourceUsage::SHADER_COMPUTE);
+                data.vis_texture,
+                frame_graph::TextureResourceUsage::COMPUTE_STORAGE_IMAGE);
 
             return data;
         },

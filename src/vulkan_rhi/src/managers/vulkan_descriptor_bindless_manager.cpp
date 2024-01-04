@@ -95,8 +95,7 @@ rhi::BindableResource VulkanDescriptorBindlessManager::bind_buffer(
     constexpr u32 DESCRIPTOR_TYPE = BINDING_BUFFERS;
     const rhi::BufferUsageFlags usage_flags = buffer.get_usage_flags();
 
-    if (contains(usage_flags, rhi::BufferUsageFlags::SRV) ||
-        contains(usage_flags, rhi::BufferUsageFlags::UAV)) {
+    if (contains(usage_flags, rhi::BufferUsageFlags::STORAGE_BUFFER)) {
         const u32 index = this->get_descriptor_index(DESCRIPTOR_TYPE);
 
         const VkDescriptorBufferInfo buffer_info {
@@ -122,12 +121,9 @@ rhi::BindableResource VulkanDescriptorBindlessManager::bind_buffer(
         m_raw_device->get_device().update_descriptor_sets(core::as_span(write), {});
 
         return rhi::BindableResource {
-            .bindless_srv = contains(usage_flags, rhi::BufferUsageFlags::SRV)
-                                ? index
-                                : rhi::BindableResource::INVALID_INDEX,
-            .bindless_uav = contains(usage_flags, rhi::BufferUsageFlags::UAV)
-                                ? index
-                                : rhi::BindableResource::INVALID_INDEX,
+            // #TODO: This is legacy, remove it later.
+            .bindless_srv = index,
+            .bindless_uav = index,
         };
     } else {
         return rhi::BindableResource {};

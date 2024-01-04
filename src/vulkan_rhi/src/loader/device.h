@@ -52,6 +52,7 @@ private:
         PFN_vkCmdFillBuffer cmd_fill_buffer;
         PFN_vkCmdNextSubpass cmd_next_subpass;
         PFN_vkCmdPipelineBarrier cmd_pipeline_barrier;
+        PFN_vkCmdPipelineBarrier2 cmd_pipeline_barrier2;
         PFN_vkCmdPushConstants cmd_push_constants;
         PFN_vkCmdResetEvent cmd_reset_event;
         PFN_vkCmdResetQueryPool cmd_reset_query_pool;
@@ -130,6 +131,7 @@ private:
         PFN_vkMergePipelineCaches merge_pipeline_caches;
         PFN_vkQueueBindSparse queue_bind_sparse;
         PFN_vkQueueSubmit queue_submit;
+        PFN_vkQueueSubmit2 queue_submit2;
         PFN_vkQueueWaitIdle queue_wait_idle;
         PFN_vkResetCommandBuffer reset_command_buffer;
         PFN_vkResetCommandPool reset_command_pool;
@@ -328,6 +330,11 @@ public:
         const core::Span<const VkBufferMemoryBarrier>& buffer_memory_barriers,
         const core::Span<const VkImageMemoryBarrier>& image_memory_barriers)
         const noexcept;
+
+    /// https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkDependencyInfo.html
+    void cmd_pipeline_barrier2(
+        const VkCommandBuffer command_buffer,
+        const VkDependencyInfo* dependency_info) const noexcept;
 
     /// https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/vkCmdPushConstants.html
     void cmd_push_constants(
@@ -530,6 +537,12 @@ public:
     [[nodiscard]] core::Expected<void, VkResult> queue_submit(
         const VkQueue queue,
         const core::Span<const VkSubmitInfo>& submit_infos,
+        const VkFence fence) const noexcept;
+
+    /// https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/vkQueueSubmit2.html
+    [[nodiscard]] core::Expected<void, VkResult> queue_submit2(
+        const VkQueue queue,
+        const core::Span<const VkSubmitInfo2>& submit_infos,
         const VkFence fence) const noexcept;
 
     /// https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/vkResetCommandBuffer.html

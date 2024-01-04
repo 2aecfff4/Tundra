@@ -47,6 +47,7 @@ Device::Device(
     m_table.cmd_fill_buffer = reinterpret_cast<PFN_vkCmdFillBuffer>(load("vkCmdFillBuffer"));
     m_table.cmd_next_subpass = reinterpret_cast<PFN_vkCmdNextSubpass>(load("vkCmdNextSubpass"));
     m_table.cmd_pipeline_barrier = reinterpret_cast<PFN_vkCmdPipelineBarrier>(load("vkCmdPipelineBarrier"));
+    m_table.cmd_pipeline_barrier2 = reinterpret_cast<PFN_vkCmdPipelineBarrier2>(load("vkCmdPipelineBarrier2"));
     m_table.cmd_push_constants = reinterpret_cast<PFN_vkCmdPushConstants>(load("vkCmdPushConstants"));
     m_table.cmd_reset_event = reinterpret_cast<PFN_vkCmdResetEvent>(load("vkCmdResetEvent"));
     m_table.cmd_reset_query_pool = reinterpret_cast<PFN_vkCmdResetQueryPool>(load("vkCmdResetQueryPool"));
@@ -125,6 +126,7 @@ Device::Device(
     m_table.merge_pipeline_caches = reinterpret_cast<PFN_vkMergePipelineCaches>(load("vkMergePipelineCaches"));
     m_table.queue_bind_sparse = reinterpret_cast<PFN_vkQueueBindSparse>(load("vkQueueBindSparse"));
     m_table.queue_submit = reinterpret_cast<PFN_vkQueueSubmit>(load("vkQueueSubmit"));
+    m_table.queue_submit2 = reinterpret_cast<PFN_vkQueueSubmit2>(load("vkQueueSubmit2"));
     m_table.queue_wait_idle = reinterpret_cast<PFN_vkQueueWaitIdle>(load("vkQueueWaitIdle"));
     m_table.reset_command_buffer = reinterpret_cast<PFN_vkResetCommandBuffer>(load("vkResetCommandBuffer"));
     m_table.reset_command_pool = reinterpret_cast<PFN_vkResetCommandPool>(load("vkResetCommandPool"));
@@ -435,6 +437,13 @@ void Device::cmd_pipeline_barrier(
         buffer_memory_barriers.data(),
         static_cast<u32>(image_memory_barriers.size()),
         image_memory_barriers.data());
+}
+
+void Device::cmd_pipeline_barrier2(
+    const VkCommandBuffer command_buffer,
+    const VkDependencyInfo* dependency_info) const noexcept
+{
+    m_table.cmd_pipeline_barrier2(command_buffer, dependency_info);
 }
 
 void Device::cmd_push_constants(
@@ -873,6 +882,23 @@ core::Expected<void, VkResult> Device::queue_submit(
 {
     const VkResult result = m_table.queue_submit(
         queue, static_cast<u32>(submit_infos.size()), submit_infos.data(), fence);
+    if (result == VK_SUCCESS) {
+        return {};
+    } else {
+        return core::make_unexpected(result);
+    }
+}
+
+core::Expected<void, VkResult> Device::queue_submit2(
+    const VkQueue queue,
+    const core::Span<const VkSubmitInfo2>& submit_infos,
+    const VkFence fence) const noexcept
+{
+    const VkResult result = m_table.queue_submit2(
+        queue, //
+        static_cast<u32>(submit_infos.size()),
+        submit_infos.data(),
+        fence);
     if (result == VK_SUCCESS) {
         return {};
     } else {

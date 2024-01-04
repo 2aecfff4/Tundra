@@ -1,5 +1,7 @@
-#include "commands/vulkan_submit_work_scheduler.h"
+#include <utility>
+
 #include "commands/vulkan_command_decoder.h"
+#include "commands/vulkan_submit_work_scheduler.h"
 #include "core/profiler.h"
 #include "resources/vulkan_swapchain.h"
 #include "resources/vulkan_texture.h"
@@ -11,8 +13,8 @@ namespace tundra::vulkan_rhi {
 
 VulkanSubmitWorkScheduler::VulkanSubmitWorkScheduler(
     core::SharedPtr<VulkanRawDevice> raw_device, Managers managers) noexcept
-    : m_raw_device(raw_device)
-    , m_managers(managers)
+    : m_raw_device(core::move(raw_device))
+    , m_managers(core::move(managers))
 {
     TNDR_PROFILER_TRACE("VulkanSubmitWorkScheduler::VulkanSubmitWorkScheduler");
 
@@ -103,46 +105,72 @@ void VulkanSubmitWorkScheduler::submit(
         const bool submit_with_synchronization_fence = (i == (submit_data.size() - 1)) &&
                                                        (num_present_infos == 0);
 
+        const VkSemaphore timeline_semaphore //
+            = core::get<VkSemaphore>(m_timeline_semaphore);
         const u64 value_wait = core::get<u64>(m_timeline_semaphore);
         const u64 value_signal = value_wait + 1;
-        const VkPipelineStageFlags flags = helpers::map_synchronization_stage(
-            data.synchronization_stage);
+        const VkPipelineStageFlags flags //
+            = helpers::map_synchronization_stage(data.synchronization_stage);
 
-        VkTimelineSemaphoreSubmitInfo timeline_semaphore_submit_info = [&] {
-            VkTimelineSemaphoreSubmitInfo submit_info {
-                .sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO,
-                .signalSemaphoreValueCount = 1,
-                .pSignalSemaphoreValues = &value_signal,
+        // #TODO: https://registry.khronos.org/vulkan/specs/1.3-extensions/html/vkspec.html#synchronization-semaphores-waiting
+        const VkSemaphoreSubmitInfo wait_semaphore_submit_info = [&] {
+            VkSemaphoreSubmitInfo wait_semaphore_submit_info {
+                .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+                .semaphore = timeline_semaphore,
+                .value = value_wait,
+                .stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                .deviceIndex = 0,
             };
 
             if (i != 0) {
-                submit_info.waitSemaphoreValueCount = 1;
-                submit_info.pWaitSemaphoreValues = &value_wait;
             }
 
-            return submit_info;
+            return wait_semaphore_submit_info;
         }();
 
-        VkSubmitInfo submit_info = [&] {
-            VkSubmitInfo submit_info {
-                .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-                .commandBufferCount = static_cast<u32>(data.command_buffers.size()),
-                .pCommandBuffers = data.command_buffers.data(),
-                .signalSemaphoreCount = 1,
-                .pSignalSemaphores = &core::get<VkSemaphore>(m_timeline_semaphore),
+        const VkSemaphoreSubmitInfo signal_semaphore_submit_info = [&] {
+            VkSemaphoreSubmitInfo signal_semaphore_submit_info {
+                .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+                .semaphore = timeline_semaphore,
+                .value = value_signal,
+                .stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                .deviceIndex = 0,
             };
 
             if (i != 0) {
-                submit_info.waitSemaphoreCount = 1;
-                submit_info.pWaitSemaphores = &core::get<VkSemaphore>(
-                    m_timeline_semaphore);
-                submit_info.pWaitDstStageMask = &flags;
             }
+
+            return signal_semaphore_submit_info;
+        }();
+
+        core::Array<VkCommandBufferSubmitInfo> command_buffer_submit_infos = [&] {
+            core::Array<VkCommandBufferSubmitInfo> submit_infos;
+            submit_infos.reserve(data.command_buffers.size());
+            for (const VkCommandBuffer command_buffer : data.command_buffers) {
+                submit_infos.push_back(VkCommandBufferSubmitInfo {
+                    .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+                    .commandBuffer = command_buffer,
+                    .deviceMask = 0,
+                });
+            }
+
+            return submit_infos;
+        }();
+
+        VkSubmitInfo2 submit_info = [&] {
+            VkSubmitInfo2 submit_info {
+                .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+                .waitSemaphoreInfoCount = 1,
+                .pWaitSemaphoreInfos = &wait_semaphore_submit_info,
+                .commandBufferInfoCount = static_cast<u32>(
+                    command_buffer_submit_infos.size()),
+                .pCommandBufferInfos = command_buffer_submit_infos.data(),
+                .signalSemaphoreInfoCount = 1,
+                .pSignalSemaphoreInfos = &signal_semaphore_submit_info,
+            };
 
             return submit_info;
         }();
-
-        helpers::chain_structs(submit_info, timeline_semaphore_submit_info);
 
         m_raw_device->queue_submit(
             data.queue_type,
@@ -157,7 +185,8 @@ void VulkanSubmitWorkScheduler::submit(
         // Frame graph should transfer ownership of resources to correct queues,
         // our job it's just to copy textures to swapchains, and present.
 
-        core::Array<VkSemaphore> swapchain_image_semaphores;
+        core::Array<VkSemaphoreSubmitInfo> wait_semaphores;
+        // core::Array<VkSemaphore> swapchain_image_semaphores;
         core::Array<u32> swapchain_image_indices;
         core::Array<VkSwapchainKHR> swapchains;
 
@@ -219,8 +248,16 @@ void VulkanSubmitWorkScheduler::submit(
                             texture.get_usage());
                     });
 
+            wait_semaphores.push_back(VkSemaphoreSubmitInfo {
+                .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+                .semaphore = swapchain_semaphore,
+                .value = 0,
+                .stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                .deviceIndex = 0,
+            });
+
             swapchain_image_indices.push_back(swapchain_image_index);
-            swapchain_image_semaphores.push_back(swapchain_semaphore);
+            // swapchain_image_semaphores.push_back(swapchain_semaphore);
             swapchains.push_back(swapchain);
 
             VulkanBarrier barrier(m_raw_device);
@@ -232,7 +269,7 @@ void VulkanSubmitWorkScheduler::submit(
                 helpers::image_subresource_range());
 
             const VkImageLayout texture_old_layout =
-                helpers::map_access_flags_to_image_layout(
+                helpers::map_texture_access_flags_to_image_layout(
                     present_info.texture_previous_access,
                     m_raw_device->supported_features().mesh_shaders);
 
@@ -242,7 +279,8 @@ void VulkanSubmitWorkScheduler::submit(
             }
 
             // Texture barrier. present_info.texture_previous_access -> TRANSFER_SRC_OPTIMAL.
-            if (present_info.texture_previous_access != rhi::AccessFlags::TRANSFER_READ) {
+            if (present_info.texture_previous_access !=
+                rhi::TextureAccessFlags::TRANSFER_SOURCE) {
                 barrier.image_layout_transition(
                     texture_image,
                     texture_old_layout,
@@ -316,56 +354,74 @@ void VulkanSubmitWorkScheduler::submit(
             m_raw_device->get_device().end_command_buffer(command_bundle.command_buffer),
             "`end_command_buffer` failed");
 
+        //////////////////////////////////////////////////////////////////////////////////
         // Submit work to a GPU.
+        const VkSemaphore timeline_semaphore //
+            = core::get<VkSemaphore>(m_timeline_semaphore);
         const VkSemaphore present_semaphore =
             m_present_semaphores[m_submit_counter % rhi::config::MAX_FRAMES_IN_FLIGHT];
-        swapchain_image_semaphores.push_back(present_semaphore);
-
         const u64 value_wait = core::get<u64>(m_timeline_semaphore);
-        const u64 values_signal[] = {
-            value_wait + 1,
-            0,
-        };
-        const VkSemaphore signal_semaphores[] = {
-            core::get<VkSemaphore>(m_timeline_semaphore),
-            present_semaphore,
+        core::get<u64>(m_timeline_semaphore) += 1;
+
+        wait_semaphores.push_back(VkSemaphoreSubmitInfo {
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+            .semaphore = timeline_semaphore,
+            .value = value_wait,
+            .stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+            .deviceIndex = 0,
+        });
+        // // Make sure the presentation engine has finished presenting the swapchain images.
+        // wait_semaphores.push_back(VkSemaphoreSubmitInfo {
+        //     .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+        //     .semaphore = present_semaphore,
+        //     .value = 0,
+        //     .stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+        //     .deviceIndex = 0,
+        // });
+
+        core::Array<VkSemaphoreSubmitInfo> signal_semaphores;
+        signal_semaphores.push_back(VkSemaphoreSubmitInfo {
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+            .semaphore = timeline_semaphore,
+            .value = value_wait + 1,
+            .stageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+            .deviceIndex = 0,
+        });
+        signal_semaphores.push_back(VkSemaphoreSubmitInfo {
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+            .semaphore = present_semaphore,
+            .value = 0,
+            .stageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+            .deviceIndex = 0,
+        });
+
+        const VkCommandBufferSubmitInfo command_buffer_submit_info {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+            .commandBuffer = command_bundle.command_buffer,
         };
 
-        VkTimelineSemaphoreSubmitInfo timeline_semaphore_submit_info {
-            .sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO,
-            .waitSemaphoreValueCount = 1,
-            .pWaitSemaphoreValues = &value_wait,
-            .signalSemaphoreValueCount = static_cast<u32>(std::size(values_signal)),
-            .pSignalSemaphoreValues = values_signal,
+        const VkSubmitInfo2 submit_info {
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+            .waitSemaphoreInfoCount = static_cast<u32>(wait_semaphores.size()),
+            .pWaitSemaphoreInfos = wait_semaphores.data(),
+            .commandBufferInfoCount = 1,
+            .pCommandBufferInfos = &command_buffer_submit_info,
+            .signalSemaphoreInfoCount = static_cast<u32>(signal_semaphores.size()),
+            .pSignalSemaphoreInfos = signal_semaphores.data(),
         };
-
-        // const VkPipelineStageFlags flags = helpers::map_synchronization_stage(
-        //     rhi::SynchronizationStage::TOP_OF_PIPE);
-        // const VkPipelineStageFlags flags = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-        const VkPipelineStageFlags flags = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-
-        VkSubmitInfo submit_info {
-            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-            .waitSemaphoreCount = 1,
-            .pWaitSemaphores = &core::get<VkSemaphore>(m_timeline_semaphore),
-            .pWaitDstStageMask = &flags,
-            .commandBufferCount = 1,
-            .pCommandBuffers = &command_bundle.command_buffer,
-            .signalSemaphoreCount = static_cast<u32>(std::size(signal_semaphores)),
-            .pSignalSemaphores = signal_semaphores,
-        };
-        helpers::chain_structs(submit_info, timeline_semaphore_submit_info);
 
         m_raw_device->queue_submit(
-            rhi::QueueType::Present, core::as_span(submit_info), synchronization_fence);
-
-        core::get<u64>(m_timeline_semaphore) += 1;
+            rhi::QueueType::Present, //
+            core::as_span(submit_info),
+            synchronization_fence);
 
         // Present
         const VkPresentInfoKHR present_info {
             .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-            .waitSemaphoreCount = static_cast<u32>(swapchain_image_semaphores.size()),
-            .pWaitSemaphores = swapchain_image_semaphores.data(),
+            // .waitSemaphoreCount = static_cast<u32>(swapchain_image_semaphores.size()),
+            // .pWaitSemaphores = swapchain_image_semaphores.data(),
+            .waitSemaphoreCount = 1,
+            .pWaitSemaphores = &present_semaphore,
             .swapchainCount = static_cast<u32>(swapchains.size()),
             .pSwapchains = swapchains.data(),
             .pImageIndices = swapchain_image_indices.data(),

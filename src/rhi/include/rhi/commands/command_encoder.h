@@ -197,9 +197,9 @@ public:
     ///     Must be `AccessFlags::TRANSFER_WRITE` or `AccessFlags::GENERAL`.
     void texture_copy(
         const TextureHandle src,
-        const AccessFlags src_texture_access,
+        const TextureAccessFlags src_texture_access,
         const TextureHandle dst,
-        const AccessFlags dst_texture_access,
+        const TextureAccessFlags dst_texture_access,
         core::Array<TextureCopyRegion> regions) noexcept;
 
     /// Copies regions from the source buffer to the destination texture.

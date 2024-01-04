@@ -74,7 +74,7 @@ struct RHI_API ClearDepthStencil {
 struct RHI_API ResolveTexture {
     /// Current texture access.
     /// `AccessFlags` are used to determine the correct layouts for a texture.
-    AccessFlags texture_access;
+    TextureAccessFlags texture_access;
     /// The texture used to write resolved multisample data at the end of rendering.
     AttachmentTexture resolve_texture;
 
@@ -90,7 +90,7 @@ struct RHI_API ColorAttachment {
     /// `AccessFlags` are used to determine the correct layouts for a texture.
     /// Must be set to `AccessFlags::GENERAL`, `AccessFlags::COLOR_ATTACHMENT` or
     /// `AccessFlags::COLOR_ATTACHMENT_WRITE`.
-    AccessFlags texture_access;
+    TextureAccessFlags texture_access;
     /// The texture that will be used for rendering.
     AttachmentTexture texture;
     /// The texture used to write resolved multisample data at the end of rendering.
@@ -113,7 +113,7 @@ struct RHI_API DepthStencilAttachment {
     /// `AccessFlags` are used to determine the correct layouts for a texture.
     /// Must be set to `AccessFlags::GENERAL`, `AccessFlags::DEPTH_STENCIL_ATTACHMENT` or
     /// `AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE`.
-    AccessFlags texture_access;
+    TextureAccessFlags texture_access;
     /// The texture that will be used for rendering.
     AttachmentTexture texture;
     /// The texture used to write resolved multisample data at the end of rendering.

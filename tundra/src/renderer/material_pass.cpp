@@ -2,6 +2,7 @@
 #include "math/vector4.h"
 #include "pipelines.h"
 #include "renderer/config.h"
+#include "renderer/frame_graph/resources/enums.h"
 #include "renderer/helpers.h"
 #include "rhi/commands/command_encoder.h"
 #include "rhi/rhi_context.h"
@@ -56,10 +57,12 @@ struct MaterialUbo {
             data.ubo_buffer = input.ubo_buffer;
 
             data.visible_meshlets = builder.read(
-                input.visible_meshlets, frame_graph::ResourceUsage::SHADER_COMPUTE);
+                input.visible_meshlets,
+                frame_graph::BufferResourceUsage::COMPUTE_STORAGE_BUFFER);
 
             data.vis_texture = builder.read(
-                input.vis_depth, frame_graph::ResourceUsage::SHADER_COMPUTE);
+                input.vis_depth,
+                frame_graph::TextureResourceUsage::COMPUTE_STORAGE_IMAGE);
 
             data.color_texture = builder.create_texture(
                 "material-pass.color_texture",
@@ -75,8 +78,10 @@ struct MaterialUbo {
                              frame_graph::TextureUsageFlags::PRESENT,
                     .tiling = frame_graph::TextureTiling::Optimal,
                 });
+
             data.color_texture = builder.write(
-                data.color_texture, frame_graph::ResourceUsage::SHADER_COMPUTE);
+                data.color_texture,
+                frame_graph::TextureResourceUsage::COMPUTE_STORAGE_IMAGE);
 
             return data;
         },
@@ -124,8 +129,8 @@ struct MaterialUbo {
 
             encoder.push_constants(ubo_buffer, ubo_ref.offset);
             encoder.global_barrier(rhi::GlobalBarrier {
-                .previous_access = rhi::AccessFlags::GENERAL,
-                .next_access = rhi::AccessFlags::GENERAL,
+                .previous_access = rhi::GlobalAccessFlags::ALL,
+                .next_access = rhi::GlobalAccessFlags::ALL,
             });
             encoder.dispatch(
                 helpers::get_pipeline(
@@ -133,6 +138,10 @@ struct MaterialUbo {
                 rhi::CommandEncoder::get_group_count(input.view_size.x, 8),
                 rhi::CommandEncoder::get_group_count(input.view_size.y, 8),
                 1);
+            encoder.global_barrier(rhi::GlobalBarrier {
+                .previous_access = rhi::GlobalAccessFlags::ALL,
+                .next_access = rhi::GlobalAccessFlags::ALL,
+            });
         });
 
     return MaterialOutput {

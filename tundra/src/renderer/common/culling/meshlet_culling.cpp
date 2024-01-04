@@ -70,33 +70,34 @@ MeshletCullingOutput meshlet_culling(
             data.ubo_buffer = input.ubo_buffer;
 
             data.visible_instances = builder.read(
-                input.visible_instances, frame_graph::ResourceUsage::SHADER_COMPUTE);
+                input.visible_instances,
+                frame_graph::BufferResourceUsage::COMPUTE_STORAGE_BUFFER);
 
             data.meshlet_culling_dispatch_args = builder.read(
                 input.meshlet_culling_dispatch_args,
-                frame_graph::ResourceUsage::INDIRECT_BUFFER);
+                frame_graph::BufferResourceUsage::INDIRECT_BUFFER);
 
             data.visible_meshlets = builder.create_buffer(
                 "meshlet_culling.visible_meshlets",
                 frame_graph::BufferCreateInfo {
-                    .usage = frame_graph::BufferUsageFlags::SRV |
-                             frame_graph::BufferUsageFlags::UAV,
+                    .usage = frame_graph::BufferUsageFlags::STORAGE_BUFFER,
                     .memory_type = frame_graph::MemoryType::GPU,
                     .size = sizeof(shader::VisibleMeshlet) * input.max_meshlet_count,
                 });
             builder.write(
-                data.visible_meshlets, frame_graph::ResourceUsage::SHADER_COMPUTE);
+                data.visible_meshlets,
+                frame_graph::BufferResourceUsage::COMPUTE_STORAGE_BUFFER);
 
             data.visible_meshlets_count = builder.create_buffer(
                 "meshlet_culling.visible_meshlets_count",
                 frame_graph::BufferCreateInfo {
-                    .usage = frame_graph::BufferUsageFlags::SRV |
-                             frame_graph::BufferUsageFlags::UAV,
+                    .usage = frame_graph::BufferUsageFlags::STORAGE_BUFFER,
                     .memory_type = frame_graph::MemoryType::GPU,
                     .size = sizeof(u32),
                 });
             builder.write(
-                data.visible_meshlets_count, frame_graph::ResourceUsage::SHADER_COMPUTE);
+                data.visible_meshlets_count,
+                frame_graph::BufferResourceUsage::COMPUTE_STORAGE_BUFFER);
 
             return data;
         },
@@ -144,8 +145,8 @@ MeshletCullingOutput meshlet_culling(
             }
 
             encoder.global_barrier(rhi::GlobalBarrier {
-                .previous_access = rhi::AccessFlags::UAV_COMPUTE,
-                .next_access = rhi::AccessFlags::UAV_COMPUTE,
+                .previous_access = rhi::GlobalAccessFlags::ALL,
+                .next_access = rhi::GlobalAccessFlags::ALL,
             });
 
             {

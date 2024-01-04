@@ -70,7 +70,7 @@ void VulkanRawDevice::wait_until_idle() const noexcept
 
 void VulkanRawDevice::queue_submit(
     const rhi::QueueType queue_type,
-    const core::Span<const VkSubmitInfo>& submit_infos,
+    const core::Span<const VkSubmitInfo2>& submit_infos,
     const VkFence fence) const noexcept
 {
     TNDR_PROFILER_TRACE("VulkanRawDevice::queue_submit");
@@ -92,7 +92,7 @@ void VulkanRawDevice::queue_submit(
     }();
 
     vulkan_map_result(
-        this->get_device().queue_submit(queue, submit_infos, fence),
+        this->get_device().queue_submit2(queue, submit_infos, fence),
         "`queue_submit` failed");
 }
 

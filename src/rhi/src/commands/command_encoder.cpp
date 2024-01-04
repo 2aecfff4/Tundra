@@ -250,9 +250,9 @@ void CommandEncoder::buffer_copy(
 
 void CommandEncoder::texture_copy(
     const TextureHandle src,
-    const AccessFlags src_texture_access,
+    const TextureAccessFlags src_texture_access,
     const TextureHandle dst,
-    const AccessFlags dst_texture_access,
+    const TextureAccessFlags dst_texture_access,
     core::Array<TextureCopyRegion> regions) noexcept
 {
     this->construct_command(commands::TextureCopyCommand {

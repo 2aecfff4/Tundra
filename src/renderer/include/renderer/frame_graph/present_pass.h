@@ -14,7 +14,8 @@ struct RENDERER_API PresentPass {
     TextureHandle texture;
     core::Option<TextureBarrier> barrier;
 
-    static constexpr AccessFlags ACCESS_FLAGS = rhi::AccessFlags::TRANSFER_READ;
+    static constexpr TextureAccessFlags ACCESS_FLAGS =
+        rhi::TextureAccessFlags::TRANSFER_SOURCE;
 };
 
 } // namespace tundra::renderer::frame_graph

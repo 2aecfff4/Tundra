@@ -18,15 +18,12 @@ private:
     bool m_supports_mesh_shaders;
 
 private:
-    core::Array<VkBufferMemoryBarrier> m_buffer_barriers;
-    core::Array<VkImageMemoryBarrier> m_image_barriers;
-    core::Array<VkMemoryBarrier> m_memory_barriers;
-
-    VkPipelineStageFlags m_src_stage_mask = 0;
-    VkPipelineStageFlags m_dst_stage_mask = 0;
+    core::Array<VkBufferMemoryBarrier2> m_buffer_barriers;
+    core::Array<VkImageMemoryBarrier2> m_image_barriers;
+    core::Array<VkMemoryBarrier2> m_memory_barriers;
 
 public:
-    VulkanBarrier(const core::SharedPtr<VulkanRawDevice>& raw_device) noexcept;
+    explicit VulkanBarrier(const core::SharedPtr<VulkanRawDevice>& raw_device) noexcept;
 
 public:
     void image_layout_transition(

@@ -58,78 +58,72 @@ IndexBufferGeneratorInitOutput index_buffer_generator_init(
 
             data.num_visible_meshlets = builder.read(
                 input.num_visible_meshlets, //
-                frame_graph::ResourceUsage::SHADER_COMPUTE);
+                frame_graph::BufferResourceUsage::COMPUTE_STORAGE_BUFFER);
 
             data.meshlet_offsets = builder.write(
                 builder.create_buffer(
                     "meshlet_offsets",
                     frame_graph::BufferCreateInfo {
-                        .usage = frame_graph::BufferUsageFlags::UAV |
-                                 frame_graph::BufferUsageFlags::SRV,
+                        .usage = frame_graph::BufferUsageFlags::STORAGE_BUFFER,
                         .memory_type = frame_graph::MemoryType::GPU,
                         .size = sizeof(u32) * input.num_loops,
                     }),
-                frame_graph::ResourceUsage::SHADER_COMPUTE);
+                frame_graph::BufferResourceUsage::COMPUTE_STORAGE_BUFFER);
 
             data.index_buffer = builder.write(
                 builder.create_buffer(
                     "index_buffer",
                     frame_graph::BufferCreateInfo {
-                        .usage = frame_graph::BufferUsageFlags::UAV |
-                                 frame_graph::BufferUsageFlags::SRV |
+                        .usage = frame_graph::BufferUsageFlags::STORAGE_BUFFER |
                                  frame_graph::BufferUsageFlags::INDEX_BUFFER,
                         .memory_type = frame_graph::MemoryType::GPU,
                         .size = config::NUM_INDEX_BUFFERS_IN_FIGHT *
                                 config::INDEX_BUFFER_BATCH_SIZE * sizeof(u32),
                     }),
-                frame_graph::ResourceUsage::SHADER_COMPUTE);
+                frame_graph::BufferResourceUsage::COMPUTE_STORAGE_BUFFER);
 
             data.visible_indices_count = builder.write(
                 builder.create_buffer(
                     "visible_indices_count",
                     frame_graph::BufferCreateInfo {
-                        .usage = frame_graph::BufferUsageFlags::SRV |
-                                 frame_graph::BufferUsageFlags::UAV,
+                        .usage = frame_graph::BufferUsageFlags::STORAGE_BUFFER,
                         .memory_type = frame_graph::MemoryType::GPU,
                         .size = sizeof(u32),
                     }),
-                frame_graph::ResourceUsage::SHADER_COMPUTE);
+                frame_graph::BufferResourceUsage::COMPUTE_STORAGE_BUFFER);
 
             data.draw_meshlets_draw_args = builder.write(
                 builder.create_buffer(
                     "draw_meshlets_draw_args",
                     frame_graph::BufferCreateInfo {
-                        .usage = frame_graph::BufferUsageFlags::SRV |
-                                 frame_graph::BufferUsageFlags::UAV |
+                        .usage = frame_graph::BufferUsageFlags::STORAGE_BUFFER |
                                  frame_graph::BufferUsageFlags::INDIRECT_BUFFER,
                         .memory_type = frame_graph::MemoryType::GPU,
                         .size = sizeof(rhi::DrawIndexedIndirectCommand) * 8,
                     }),
-                frame_graph::ResourceUsage::SHADER_COMPUTE);
+                frame_graph::BufferResourceUsage::COMPUTE_STORAGE_BUFFER);
 
             data.draw_count = builder.write(
                 builder.create_buffer(
                     "draw_count",
                     frame_graph::BufferCreateInfo {
-                        .usage = frame_graph::BufferUsageFlags::SRV |
-                                 frame_graph::BufferUsageFlags::UAV |
+                        .usage = frame_graph::BufferUsageFlags::STORAGE_BUFFER |
                                  frame_graph::BufferUsageFlags::INDIRECT_BUFFER,
                         .memory_type = frame_graph::MemoryType::GPU,
                         .size = sizeof(u32),
                     }),
-                frame_graph::ResourceUsage::SHADER_COMPUTE);
+                frame_graph::BufferResourceUsage::COMPUTE_STORAGE_BUFFER);
 
             data.index_generator_dispatch_indirect_commands = builder.write(
                 builder.create_buffer(
                     "index_generator_dispatch_indirect_commands",
                     frame_graph::BufferCreateInfo {
-                        .usage = frame_graph::BufferUsageFlags::SRV |
-                                 frame_graph::BufferUsageFlags::UAV |
+                        .usage = frame_graph::BufferUsageFlags::STORAGE_BUFFER |
                                  frame_graph::BufferUsageFlags::INDIRECT_BUFFER,
                         .memory_type = frame_graph::MemoryType::GPU,
                         .size = sizeof(rhi::DispatchIndirectCommand) * input.num_loops,
                     }),
-                frame_graph::ResourceUsage::SHADER_COMPUTE);
+                frame_graph::BufferResourceUsage::COMPUTE_STORAGE_BUFFER);
 
             return data;
         },
@@ -182,8 +176,8 @@ IndexBufferGeneratorInitOutput index_buffer_generator_init(
                 1);
 
             encoder.global_barrier(rhi::GlobalBarrier {
-                .previous_access = rhi::AccessFlags::UAV_COMPUTE,
-                .next_access = rhi::AccessFlags::UAV_COMPUTE,
+                .previous_access = rhi::GlobalAccessFlags::ALL,
+                .next_access = rhi::GlobalAccessFlags::ALL,
             });
         });
 

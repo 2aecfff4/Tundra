@@ -27,7 +27,7 @@ struct RHI_API PresentInfo {
     /// Texture type **must** be `TextureType::Texture2D`!
     TextureHandle texture;
     /// Texture previous access. Used to determine the current texture layout.
-    AccessFlags texture_previous_access = AccessFlags::NONE;
+    TextureAccessFlags texture_previous_access = TextureAccessFlags::NONE;
 };
 
 } // namespace tundra::rhi

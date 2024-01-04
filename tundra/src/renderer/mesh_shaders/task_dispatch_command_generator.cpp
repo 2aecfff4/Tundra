@@ -43,20 +43,22 @@ TaskDispatchCommandGeneratorOutput task_dispatch_command_generator(
             data.ubo_buffer = input.ubo_buffer;
 
             data.command_count = input.command_count;
-            builder.read(data.command_count, frame_graph::ResourceUsage::SHADER_COMPUTE);
+            builder.read(
+                data.command_count,
+                frame_graph::BufferResourceUsage::COMPUTE_STORAGE_BUFFER);
 
             data.task_shader_dispatch_args = builder.create_buffer(
                 "task_dispatch_command_generator.task_shader_dispatch_args",
                 frame_graph::BufferCreateInfo {
                     .usage = frame_graph::BufferUsageFlags::INDIRECT_BUFFER |
-                             frame_graph::BufferUsageFlags::UAV,
+                             frame_graph::BufferUsageFlags::STORAGE_BUFFER,
                     .memory_type = frame_graph::MemoryType::GPU,
                     .size = sizeof(rhi::DrawMeshTasksIndirectCommand),
                 });
 
             builder.write(
                 data.task_shader_dispatch_args,
-                frame_graph::ResourceUsage::SHADER_COMPUTE);
+                frame_graph::BufferResourceUsage::COMPUTE_STORAGE_BUFFER);
 
             return data;
         },

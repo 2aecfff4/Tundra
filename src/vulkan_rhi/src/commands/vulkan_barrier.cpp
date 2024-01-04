@@ -1,33 +1,40 @@
 #include "commands/vulkan_barrier.h"
+#include "core/std/assert.h"
+#include "core/std/panic.h"
 #include "core/std/tuple.h"
 #include "resources/vulkan_buffer.h"
 #include "resources/vulkan_texture.h"
 #include "rhi/resources/access_flags.h"
+#include "vulkan/vulkan_core.h"
 #include "vulkan_device.h"
 #include "vulkan_helpers.h"
 
 namespace tundra::vulkan_rhi {
 
-[[nodiscard]] core::Tuple<VkAccessFlags, VkPipelineStageFlags, VkImageLayout>
-    translate_previous_access(
-        const rhi::AccessFlags flags, const bool supports_mesh_shaders) noexcept
+[[nodiscard]] core::Tuple<VkAccessFlags2, VkPipelineStageFlags2, VkImageLayout>
+    translate_access_flags(
+        const rhi::TextureAccessFlags flags, const bool supports_mesh_shaders)
 {
-    VkAccessFlags access_flags {};
-    VkPipelineStageFlags pipeline_stage_flags {};
-    const VkImageLayout image_layout = helpers::map_access_flags_to_image_layout(
-        flags, supports_mesh_shaders);
+    VkAccessFlags2 access_flags = VK_ACCESS_2_NONE;
+    VkPipelineStageFlags2 pipeline_stage_flags = VK_PIPELINE_STAGE_2_NONE;
+    const VkImageLayout image_layout //
+        = helpers::map_texture_access_flags_to_image_layout(flags, supports_mesh_shaders);
 
-    if (flags != rhi::AccessFlags::NONE) {
-        for (usize i = 0; i <= static_cast<usize>(rhi::AccessFlags::MAX_VALUE); ++i) {
-            const rhi::AccessFlags flag = static_cast<rhi::AccessFlags>(1 << i);
+    if (flags != rhi::TextureAccessFlags::NONE) {
+        constexpr usize num_bits = (sizeof(flags) * 8);
+        for (usize i = 0; i <= num_bits; ++i) {
+            const rhi::TextureAccessFlags flag //
+                = static_cast<rhi::TextureAccessFlags>(1 << i);
 
             if (contains(flags, flag)) {
-                const helpers::AccessInfo access_info = helpers::get_access_info(
-                    flag, supports_mesh_shaders);
+                const helpers::AccessInfo access_info //
+                    = helpers::get_access_info(flag, supports_mesh_shaders);
                 pipeline_stage_flags |= access_info.stage_flags;
-                if (rhi::is_write_access(flag)) {
-                    access_flags |= access_info.access_flags;
-                }
+
+                // #NOTE: `_READ` flags passed into the `srcAccessMask` are redundant.
+                // It does not make sense to make reads available (flush caches),
+                // but the spec does not forbid it.
+                access_flags |= access_info.access_flags;
             }
         }
     }
@@ -35,34 +42,60 @@ namespace tundra::vulkan_rhi {
     return core::make_tuple(access_flags, pipeline_stage_flags, image_layout);
 }
 
-[[nodiscard]] core::Tuple<VkAccessFlags, VkPipelineStageFlags, VkImageLayout>
-    translate_next_access(
-        const rhi::AccessFlags flags,
-        const VkAccessFlags src_assess_mask,
-        const bool supports_mesh_shaders) noexcept
+[[nodiscard]] core::Tuple<VkAccessFlags2, VkPipelineStageFlags2> translate_access_flags(
+    const rhi::BufferAccessFlags flags, const bool supports_mesh_shaders)
 {
-    VkAccessFlags access_flags {};
-    VkPipelineStageFlags pipeline_stage_flags {};
-    const VkImageLayout image_layout = helpers::map_access_flags_to_image_layout(
-        flags, supports_mesh_shaders);
+    VkAccessFlags2 access_flags = VK_ACCESS_2_NONE;
+    VkPipelineStageFlags2 pipeline_stage_flags = VK_PIPELINE_STAGE_2_NONE;
 
-    if (flags != rhi::AccessFlags::NONE) {
-        for (usize i = 0; i <= static_cast<usize>(rhi::AccessFlags::MAX_VALUE); ++i) {
-            const rhi::AccessFlags flag = static_cast<rhi::AccessFlags>(1 << i);
+    if (flags != rhi::BufferAccessFlags::NONE) {
+        constexpr usize num_bits = (sizeof(flags) * 8);
+        for (usize i = 0; i <= num_bits; ++i) {
+            const rhi::BufferAccessFlags flag //
+                = static_cast<rhi::BufferAccessFlags>(1 << i);
 
             if (contains(flags, flag)) {
-                const helpers::AccessInfo access_info = helpers::get_access_info(
-                    flag, supports_mesh_shaders);
-
+                const helpers::AccessInfo access_info //
+                    = helpers::get_access_info(flag, supports_mesh_shaders);
                 pipeline_stage_flags |= access_info.stage_flags;
+
+                // #NOTE: `_READ` flags passed into the `srcAccessMask` are redundant.
+                // It does not make sense to make reads available (flush caches),
+                // but the spec does not forbid it.
                 access_flags |= access_info.access_flags;
-                if (src_assess_mask != 0) {
-                }
             }
         }
     }
 
-    return core::make_tuple(access_flags, pipeline_stage_flags, image_layout);
+    return core::make_tuple(access_flags, pipeline_stage_flags);
+}
+
+[[nodiscard]] core::Tuple<VkAccessFlags2, VkPipelineStageFlags2> translate_access_flags(
+    const rhi::GlobalAccessFlags flags, const bool supports_mesh_shaders)
+{
+    VkAccessFlags2 access_flags = VK_ACCESS_2_NONE;
+    VkPipelineStageFlags2 pipeline_stage_flags = VK_PIPELINE_STAGE_2_NONE;
+
+    if (flags != rhi::GlobalAccessFlags::NONE) {
+        constexpr usize num_bits = (sizeof(flags) * 8);
+        for (usize i = 0; i <= num_bits; ++i) {
+            const rhi::GlobalAccessFlags flag //
+                = static_cast<rhi::GlobalAccessFlags>(1 << i);
+
+            if (contains(flags, flag)) {
+                const helpers::AccessInfo access_info //
+                    = helpers::get_access_info(flag, supports_mesh_shaders);
+                pipeline_stage_flags |= access_info.stage_flags;
+
+                // #NOTE: `_READ` flags passed into `srcAccessMask` are redundant.
+                // It does not make sense to make reads available,
+                // but the spec does not forbid this
+                access_flags |= access_info.access_flags;
+            }
+        }
+    }
+
+    return core::make_tuple(access_flags, pipeline_stage_flags);
 }
 
 [[nodiscard]] core::Tuple<u32, u32> get_queue_family_indices(
@@ -117,25 +150,19 @@ void VulkanBarrier::image_layout_transition(
     const VkImageLayout new_layout,
     const VkImageSubresourceRange& subresource_range) noexcept
 {
-    VkPipelineStageFlags src_stage_mask = helpers::image_layout_to_pipeline_stage(
-        old_layout);
-    VkPipelineStageFlags dst_stage_mask = helpers::image_layout_to_pipeline_stage(
-        new_layout);
+    const VkPipelineStageFlags2 src_stage_mask //
+        = helpers::image_layout_to_pipeline_stage(old_layout);
+    const VkPipelineStageFlags2 dst_stage_mask //
+        = helpers::image_layout_to_pipeline_stage(new_layout);
 
-    if (src_stage_mask == 0) {
-        src_stage_mask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-    }
-    if (dst_stage_mask == 0) {
-        dst_stage_mask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-    }
+    tndr_assert(src_stage_mask != VK_PIPELINE_STAGE_2_NONE, "Invalid stage mask");
+    tndr_assert(dst_stage_mask != VK_PIPELINE_STAGE_2_NONE, "Invalid stage mask");
 
-    m_src_stage_mask |= src_stage_mask;
-    m_dst_stage_mask |= dst_stage_mask;
-
-    const auto flags = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
-    VkImageMemoryBarrier image_barrier {
-        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+    VkImageMemoryBarrier2 image_barrier {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+        .srcStageMask = src_stage_mask,
         .srcAccessMask = helpers::to_access_flags(old_layout),
+        .dstStageMask = dst_stage_mask,
         .dstAccessMask = helpers::to_access_flags(new_layout),
         .oldLayout = old_layout,
         .newLayout = new_layout,
@@ -149,26 +176,20 @@ void VulkanBarrier::image_layout_transition(
 
 void VulkanBarrier::global_barrier(const rhi::GlobalBarrier& barrier) noexcept
 {
-    [[maybe_unused]] auto [src_access_mask, src_stage_mask, _0] =
-        translate_previous_access(barrier.previous_access, m_supports_mesh_shaders);
-    [[maybe_unused]] auto [dst_access_mask, dst_stage_mask, _1] = translate_next_access(
-        barrier.next_access, src_access_mask, m_supports_mesh_shaders);
+    const auto [src_access_mask, src_stage_mask] //
+        = translate_access_flags(barrier.previous_access, m_supports_mesh_shaders);
+    const auto [dst_access_mask, dst_stage_mask] //
+        = translate_access_flags(barrier.next_access, m_supports_mesh_shaders);
 
-    if (src_stage_mask == 0) {
-        src_stage_mask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-    }
-    if (dst_stage_mask == 0) {
-        dst_stage_mask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-    }
+    tndr_assert(src_stage_mask != VK_PIPELINE_STAGE_2_NONE, "Invalid stage mask");
+    tndr_assert(dst_stage_mask != VK_PIPELINE_STAGE_2_NONE, "Invalid stage mask");
 
-    m_src_stage_mask |= src_stage_mask;
-    m_dst_stage_mask |= dst_stage_mask;
-
-    const auto flags = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
-    VkMemoryBarrier memory_barrier {
-        .sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER,
-        .srcAccessMask = src_access_mask | flags,
-        .dstAccessMask = dst_access_mask | flags,
+    VkMemoryBarrier2 memory_barrier {
+        .sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
+        .srcStageMask = src_stage_mask,
+        .srcAccessMask = src_access_mask,
+        .dstStageMask = dst_stage_mask,
+        .dstAccessMask = dst_access_mask,
     };
     m_memory_barriers.push_back(core::move(memory_barrier));
 }
@@ -176,12 +197,18 @@ void VulkanBarrier::global_barrier(const rhi::GlobalBarrier& barrier) noexcept
 void VulkanBarrier::texture_barrier(
     const VulkanTexture& texture, const rhi::TextureBarrier& barrier) noexcept
 {
-    auto [src_access_mask, src_stage_mask, old_layout] = translate_previous_access(
-        barrier.previous_access, m_supports_mesh_shaders);
-    auto [dst_access_mask, dst_stage_mask, new_layout] = translate_next_access(
-        barrier.next_access, src_access_mask, m_supports_mesh_shaders);
-    auto [src_queue_family_index, dst_queue_family_index] = get_queue_family_indices(
-        m_raw_device, barrier.source_queue, barrier.destination_queue);
+    const auto [src_access_mask, src_stage_mask, old_layout] //
+        = translate_access_flags(barrier.previous_access, m_supports_mesh_shaders);
+    const auto [dst_access_mask, dst_stage_mask, new_layout] //
+        = translate_access_flags(barrier.next_access, m_supports_mesh_shaders);
+    const auto [src_queue_family_index, dst_queue_family_index] //
+        = get_queue_family_indices(
+            m_raw_device, //
+            barrier.source_queue,
+            barrier.destination_queue);
+
+    tndr_assert(src_stage_mask != VK_PIPELINE_STAGE_2_NONE, "Invalid stage mask");
+    tndr_assert(dst_stage_mask != VK_PIPELINE_STAGE_2_NONE, "Invalid stage mask");
 
     const rhi::TextureUsageFlags texture_usage = texture.get_usage();
     if (!helpers::is_layout_allowed(old_layout, texture_usage)) {
@@ -192,16 +219,6 @@ void VulkanBarrier::texture_barrier(
         core::panic("{} is not allowed with: {}.", new_layout, texture_usage);
     }
 
-    if (src_stage_mask == 0) {
-        src_stage_mask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-    }
-    if (dst_stage_mask == 0) {
-        dst_stage_mask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-    }
-
-    m_src_stage_mask |= src_stage_mask;
-    m_dst_stage_mask |= dst_stage_mask;
-
     const VkImageAspectFlags aspect_mask = [&] {
         const rhi::TextureFormat texture_format = texture.get_format();
         const rhi::TextureFormatDesc desc = rhi::get_texture_format_desc(texture_format);
@@ -209,9 +226,11 @@ void VulkanBarrier::texture_barrier(
         return helpers::map_texture_aspect(desc.aspect);
     }();
 
-    VkImageMemoryBarrier image_barrier {
-        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+    VkImageMemoryBarrier2 image_barrier {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+        .srcStageMask = src_stage_mask,
         .srcAccessMask = src_access_mask,
+        .dstStageMask = dst_stage_mask,
         .dstAccessMask = dst_access_mask,
         .oldLayout = old_layout,
         .newLayout = new_layout,
@@ -234,26 +253,21 @@ void VulkanBarrier::texture_barrier(
 void VulkanBarrier::buffer_barrier(
     const VulkanBuffer& buffer, const rhi::BufferBarrier& barrier) noexcept
 {
-    auto [src_access_mask, src_stage_mask, old_layout] = translate_previous_access(
-        barrier.previous_access, m_supports_mesh_shaders);
-    auto [dst_access_mask, dst_stage_mask, new_layout] = translate_next_access(
-        barrier.next_access, src_access_mask, m_supports_mesh_shaders);
-    auto [src_queue_family_index, dst_queue_family_index] = get_queue_family_indices(
-        m_raw_device, barrier.source_queue, barrier.destination_queue);
+    const auto [src_access_mask, src_stage_mask] //
+        = translate_access_flags(barrier.previous_access, m_supports_mesh_shaders);
+    const auto [dst_access_mask, dst_stage_mask] //
+        = translate_access_flags(barrier.next_access, m_supports_mesh_shaders);
+    const auto [src_queue_family_index, dst_queue_family_index] //
+        = get_queue_family_indices(
+            m_raw_device, //
+            barrier.source_queue,
+            barrier.destination_queue);
 
-    if (src_stage_mask == 0) {
-        src_stage_mask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-    }
-    if (dst_stage_mask == 0) {
-        dst_stage_mask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-    }
-
-    m_src_stage_mask |= src_stage_mask;
-    m_dst_stage_mask |= dst_stage_mask;
-
-    VkBufferMemoryBarrier buffer_barrier {
-        .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+    VkBufferMemoryBarrier2 buffer_barrier {
+        .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
+        .srcStageMask = src_stage_mask,
         .srcAccessMask = src_access_mask,
+        .dstStageMask = dst_stage_mask,
         .dstAccessMask = dst_access_mask,
         .srcQueueFamilyIndex = src_queue_family_index,
         .dstQueueFamilyIndex = dst_queue_family_index,
@@ -268,16 +282,17 @@ void VulkanBarrier::execute(const VkCommandBuffer command_buffer) const noexcept
 {
     if (!m_memory_barriers.empty() || !m_buffer_barriers.empty() ||
         !m_image_barriers.empty()) {
-        m_raw_device->get_device().cmd_pipeline_barrier(
-            command_buffer,
-            // m_src_stage_mask,
-            // m_dst_stage_mask,
-            VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-            VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-            0,
-            core::as_span(m_memory_barriers),
-            core::as_span(m_buffer_barriers),
-            core::as_span(m_image_barriers));
+        const VkDependencyInfo dependency_info {
+            .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            .memoryBarrierCount = static_cast<u32>(m_memory_barriers.size()),
+            .pMemoryBarriers = m_memory_barriers.data(),
+            .bufferMemoryBarrierCount = static_cast<u32>(m_buffer_barriers.size()),
+            .pBufferMemoryBarriers = m_buffer_barriers.data(),
+            .imageMemoryBarrierCount = static_cast<u32>(m_image_barriers.size()),
+            .pImageMemoryBarriers = m_image_barriers.data(),
+        };
+        m_raw_device->get_device().cmd_pipeline_barrier2(
+            command_buffer, &dependency_info);
     }
 }
 
@@ -286,8 +301,6 @@ void VulkanBarrier::reset() noexcept
     m_buffer_barriers.clear();
     m_image_barriers.clear();
     m_memory_barriers.clear();
-    m_src_stage_mask = 0;
-    m_dst_stage_mask = 0;
 }
 
 } // namespace tundra::vulkan_rhi

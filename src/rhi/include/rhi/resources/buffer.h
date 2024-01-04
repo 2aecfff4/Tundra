@@ -42,20 +42,42 @@ enum class MemoryType : u8 {
 enum class BufferUsageFlags : u8 {
     TRANSFER_SOURCE = 1 << 0,
     TRANSFER_DESTINATION = 1 << 1,
-    /// The buffer is used as a SRV. In Vulkan known as a storage buffer. [read only]
-    SRV = 1 << 2,
-    /// The buffer is used as a UAV. In Vulkan known as a storage buffer. [read/write]
-    UAV = 1 << 3,
-    /// The buffer is used as a CBV. In Vulkan known as a uniform buffer. [read only]
-    CBV = 1 << 4,
-    INDEX_BUFFER = 1 << 5,
-    VERTEX_BUFFER = 1 << 6,
-    INDIRECT_BUFFER = 1 << 7,
-    ALL = TRANSFER_SOURCE | TRANSFER_DESTINATION | SRV | UAV | CBV | INDEX_BUFFER |
-          VERTEX_BUFFER | INDIRECT_BUFFER,
+    STORAGE_BUFFER = 1 << 2,
+    UNIFORM_BUFFER = 1 << 3,
+    INDEX_BUFFER = 1 << 4,
+    VERTEX_BUFFER = 1 << 5,
+    INDIRECT_BUFFER = 1 << 6,
+    ALL = TRANSFER_SOURCE | TRANSFER_DESTINATION | STORAGE_BUFFER | UNIFORM_BUFFER |
+          INDEX_BUFFER | VERTEX_BUFFER | INDIRECT_BUFFER,
 };
 
 TNDR_ENUM_CLASS_FLAGS(BufferUsageFlags)
+
+/// A set of flags representing different access patterns for buffers.
+///
+/// This enumeration is used to specify the intended access patterns for buffers.
+/// Each variant represents a specific access type, and these variants can be combined
+/// using bitwise OR operations to indicate multiple access types.
+///
+/// This flags are used to generate correct barriers.
+enum class BufferAccessFlags : u16 {
+    NONE = 0,
+    TRANSFER_SOURCE = 1 << 0,
+    TRANSFER_DESTINATION = 1 << 1,
+    COMPUTE_STORAGE_BUFFER_READ = 1 << 2,
+    COMPUTE_STORAGE_BUFFER_WRITE = 1 << 3,
+    COMPUTE_STORAGE_BUFFER = COMPUTE_STORAGE_BUFFER_READ | COMPUTE_STORAGE_BUFFER_WRITE,
+    GRAPHICS_STORAGE_BUFFER_READ = 1 << 4,
+    GRAPHICS_STORAGE_BUFFER_WRITE = 1 << 5,
+    GRAPHICS_STORAGE_BUFFER = GRAPHICS_STORAGE_BUFFER_READ |
+                              GRAPHICS_STORAGE_BUFFER_WRITE,
+    UNIFORM_BUFFER = 1 << 6,
+    INDEX_BUFFER = 1 << 7,
+    VERTEX_BUFFER = 1 << 8,
+    INDIRECT_BUFFER = 1 << 9,
+};
+
+TNDR_ENUM_CLASS_FLAGS(BufferAccessFlags)
 
 ///
 struct RHI_API BufferCopyRegion {
@@ -66,7 +88,7 @@ struct RHI_API BufferCopyRegion {
 
 ///
 struct RHI_API BufferCreateInfo {
-    BufferUsageFlags usage = BufferUsageFlags::SRV;
+    BufferUsageFlags usage = BufferUsageFlags::STORAGE_BUFFER;
     MemoryType memory_type = MemoryType::GPU;
     u64 size = 0;
     core::String name;

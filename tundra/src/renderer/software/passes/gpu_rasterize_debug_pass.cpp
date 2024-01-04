@@ -38,7 +38,8 @@ GpuRasterizeDebugOutput gpu_rasterize_debug_pass(
             data.ubo_buffer = input.ubo_buffer;
 
             data.vis_depth = builder.read(
-                input.vis_depth, frame_graph::ResourceUsage::SHADER_COMPUTE);
+                input.vis_depth,
+                frame_graph::TextureResourceUsage::COMPUTE_STORAGE_IMAGE);
 
             data.debug_texture = builder.create_texture(
                 "gpu_rasterize_debug_pass.debug_texture",
@@ -56,7 +57,8 @@ GpuRasterizeDebugOutput gpu_rasterize_debug_pass(
                 });
 
             data.debug_texture = builder.write(
-                data.debug_texture, frame_graph::ResourceUsage::SHADER_COMPUTE);
+                data.debug_texture,
+                frame_graph::TextureResourceUsage::COMPUTE_STORAGE_IMAGE);
 
             return data;
         },

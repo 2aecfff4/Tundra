@@ -1,6 +1,7 @@
 #include "renderer/software/passes/gpu_rasterizer_init.h"
 #include "pipelines.h"
 #include "renderer/config.h"
+#include "renderer/frame_graph/resources/enums.h"
 #include "renderer/helpers.h"
 #include "rhi/commands/dispatch_indirect.h"
 #include "rhi/rhi_context.h"
@@ -42,7 +43,8 @@ GpuRasterizerInitOutput gpu_rasterizer_init_pass(
             data.ubo_buffer = input.ubo_buffer;
 
             data.visible_meshlets_count = builder.read(
-                input.visible_meshlets_count, frame_graph::ResourceUsage::SHADER_COMPUTE);
+                input.visible_meshlets_count,
+                frame_graph::BufferResourceUsage::COMPUTE_STORAGE_BUFFER);
 
             data.vis_texture = builder.create_texture(
                 "gpu_rasterizer.vis_texture",
@@ -58,19 +60,20 @@ GpuRasterizerInitOutput gpu_rasterizer_init_pass(
                     .tiling = frame_graph::TextureTiling::Optimal,
                 });
             data.vis_texture = builder.write(
-                data.vis_texture, frame_graph::ResourceUsage::SHADER_COMPUTE);
+                data.vis_texture,
+                frame_graph::TextureResourceUsage::COMPUTE_STORAGE_IMAGE);
 
             data.gpu_rasterizer_dispatch_args = builder.create_buffer(
                 "gpu_rasterize_init_pass.gpu_rasterizer_dispatch_args",
                 frame_graph::BufferCreateInfo {
-                    .usage = frame_graph::BufferUsageFlags::UAV |
+                    .usage = frame_graph::BufferUsageFlags::STORAGE_BUFFER |
                              frame_graph::BufferUsageFlags::INDIRECT_BUFFER,
                     .memory_type = frame_graph::MemoryType::GPU,
                     .size = sizeof(rhi::DispatchIndirectCommand),
                 });
             builder.write(
                 data.gpu_rasterizer_dispatch_args,
-                frame_graph::ResourceUsage::SHADER_COMPUTE);
+                frame_graph::BufferResourceUsage::COMPUTE_STORAGE_BUFFER);
 
             return data;
         },

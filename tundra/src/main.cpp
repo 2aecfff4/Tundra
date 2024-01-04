@@ -67,7 +67,7 @@ public:
     {
         m_mesh_descriptors_buffer = globals::g_rhi_context->create_buffer(
             rhi::BufferCreateInfo {
-                .usage = rhi::BufferUsageFlags::SRV,
+                .usage = rhi::BufferUsageFlags::STORAGE_BUFFER,
                 .memory_type = rhi::MemoryType::Dynamic,
                 .size = sizeof(shader::MeshDescriptor),
                 .name = "mesh_descriptors_buffer",
@@ -75,7 +75,7 @@ public:
 
         for (rhi::BufferHandle& buffer : m_gpu_instance_transforms_buffer) {
             buffer = globals::g_rhi_context->create_buffer(rhi::BufferCreateInfo {
-                .usage = rhi::BufferUsageFlags::SRV,
+                .usage = rhi::BufferUsageFlags::STORAGE_BUFFER,
                 .memory_type = rhi::MemoryType::Dynamic,
                 .size = NUM_INSTANCES * sizeof(shader::InstanceTransform),
                 .name = "gpu_instance_transforms",
@@ -85,7 +85,7 @@ public:
         for (usize i = 0; i < rhi::config::MAX_FRAMES_IN_FLIGHT; ++i) {
             rhi::BufferHandle& buffer = m_mesh_instances_buffer[i];
             buffer = globals::g_rhi_context->create_buffer(rhi::BufferCreateInfo {
-                .usage = rhi::BufferUsageFlags::SRV,
+                .usage = rhi::BufferUsageFlags::STORAGE_BUFFER,
                 .memory_type = rhi::MemoryType::Dynamic,
                 .size = NUM_INSTANCES * sizeof(shader::MeshInstance),
                 .name = fmt::format("mesh_instances: {}", i),
@@ -234,7 +234,7 @@ private:
         }
 
         m_mesh_data_buffer = globals::g_rhi_context->create_buffer(rhi::BufferCreateInfo {
-            .usage = rhi::BufferUsageFlags::SRV,
+            .usage = rhi::BufferUsageFlags::STORAGE_BUFFER,
             .memory_type = rhi::MemoryType::Dynamic,
             .size = total_size,
             .name = "mesh_data_buffer",

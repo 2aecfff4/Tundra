@@ -80,7 +80,7 @@ public:
     void wait_until_idle() const noexcept;
     void queue_submit(
         const rhi::QueueType queue_type,
-        const core::Span<const VkSubmitInfo>& submit_infos,
+        const core::Span<const VkSubmitInfo2>& submit_infos,
         const VkFence fence) const noexcept;
     void queue_present(
         const rhi::QueueType queue_type, const VkPresentInfoKHR& present_info) noexcept;

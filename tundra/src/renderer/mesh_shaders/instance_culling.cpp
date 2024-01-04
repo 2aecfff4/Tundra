@@ -79,25 +79,26 @@ InstanceCullingOutput instance_culling(
             data.command_count = builder.create_buffer(
                 "instance_culling.command_count",
                 frame_graph::BufferCreateInfo {
-                    .usage = frame_graph::BufferUsageFlags::SRV |
-                             frame_graph::BufferUsageFlags::UAV,
+                    .usage = frame_graph::BufferUsageFlags::STORAGE_BUFFER,
                     .memory_type = frame_graph::MemoryType::GPU,
                     .size = sizeof(u32),
                 });
 
-            builder.write(data.command_count, frame_graph::ResourceUsage::SHADER_COMPUTE);
+            builder.write(
+                data.command_count,
+                frame_graph::BufferResourceUsage::COMPUTE_STORAGE_BUFFER);
 
             data.command_buffer = builder.create_buffer(
                 "instance_culling.command_buffer",
                 frame_graph::BufferCreateInfo {
-                    .usage = frame_graph::BufferUsageFlags::UAV |
-                             frame_graph::BufferUsageFlags::SRV,
+                    .usage = frame_graph::BufferUsageFlags::STORAGE_BUFFER,
                     .memory_type = frame_graph::MemoryType::GPU,
                     .size = sizeof(ubo::MeshTaskCommand) *
                             config::TASK_NUM_WORKGROUP_LIMIT,
                 });
             builder.write(
-                data.command_buffer, frame_graph::ResourceUsage::SHADER_COMPUTE);
+                data.command_buffer,
+                frame_graph::BufferResourceUsage::COMPUTE_STORAGE_BUFFER);
 
             return data;
         },
@@ -150,8 +151,8 @@ InstanceCullingOutput instance_culling(
                 1);
 
             encoder.global_barrier(rhi::GlobalBarrier {
-                .previous_access = rhi::AccessFlags::UAV_COMPUTE,
-                .next_access = rhi::AccessFlags::UAV_COMPUTE,
+                .previous_access = rhi::GlobalAccessFlags::ALL,
+                .next_access = rhi::GlobalAccessFlags::ALL,
             });
 
             ubo_ref = data.ubo_buffer->allocate<ubo::InstanceCullingUbo>();

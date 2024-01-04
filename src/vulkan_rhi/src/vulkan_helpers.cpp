@@ -454,16 +454,8 @@ VkBufferUsageFlags map_buffer_usage(const rhi::BufferUsageFlags buffer_usage) no
     if (contains(buffer_usage, rhi::BufferUsageFlags::TRANSFER_DESTINATION)) {
         flags |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
     }
-    if (contains(buffer_usage, rhi::BufferUsageFlags::SRV) ||
-        contains(buffer_usage, rhi::BufferUsageFlags::UAV)) {
-        // #NOTE: From vulkan perspective SRV and UAV are the same. The only difference is in the syntax in glsl.
-        // https://www.khronos.org/opengl/wiki/Shader_Storage_Buffer_Object#Memory_qualifiers
-        // SRV allows only reads - `readonly buffer BufferName`.
-        // UAV allows reads and writes - `buffer BufferName`.
+    if (contains(buffer_usage, rhi::BufferUsageFlags::STORAGE_BUFFER)) {
         flags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-    }
-    if (contains(buffer_usage, rhi::BufferUsageFlags::CBV)) {
-        flags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
     }
     if (contains(buffer_usage, rhi::BufferUsageFlags::INDEX_BUFFER)) {
         flags |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
@@ -830,180 +822,638 @@ void end_region(
 // Barriers
 
 AccessInfo get_access_info(
-    const rhi::AccessFlags flag, const bool supports_mesh_shaders) noexcept
+    const rhi::TextureAccessFlags flag, //
+    const bool supports_mesh_shaders) noexcept
 {
     switch (flag) {
-        case rhi::AccessFlags::NONE:
+        case rhi::TextureAccessFlags::NONE: {
             return AccessInfo {
-                .access_flags = 0,
-                .stage_flags = 0,
+                .access_flags = VK_ACCESS_2_NONE,
+                .stage_flags = VK_PIPELINE_STAGE_2_NONE,
                 .image_layout = VK_IMAGE_LAYOUT_UNDEFINED,
-            };
-        case rhi::AccessFlags::INDIRECT_BUFFER:
-            return AccessInfo {
-                .access_flags = VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
-                .stage_flags = VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT,
-                .image_layout = VK_IMAGE_LAYOUT_UNDEFINED,
-            };
-        case rhi::AccessFlags::INDEX_BUFFER:
-            return AccessInfo {
-                .access_flags = VK_ACCESS_INDEX_READ_BIT,
-                .stage_flags = VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
-                .image_layout = VK_IMAGE_LAYOUT_UNDEFINED,
-            };
-        case rhi::AccessFlags::VERTEX_BUFFER:
-            return AccessInfo {
-                .access_flags = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT,
-                .stage_flags = VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
-                .image_layout = VK_IMAGE_LAYOUT_UNDEFINED,
-            };
-        case rhi::AccessFlags::SRV_GRAPHICS: {
-            VkPipelineStageFlags stage_flags = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
-                                               VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
-            if (supports_mesh_shaders) {
-                stage_flags |= VK_PIPELINE_STAGE_TASK_SHADER_BIT_EXT |
-                               VK_PIPELINE_STAGE_MESH_SHADER_BIT_EXT;
-            }
-            return AccessInfo {
-                .access_flags = VK_ACCESS_UNIFORM_READ_BIT | VK_ACCESS_SHADER_READ_BIT,
-                .stage_flags = stage_flags,
-                .image_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             };
         }
-        case rhi::AccessFlags::SRV_COMPUTE:
+        case rhi::TextureAccessFlags::TRANSFER_SOURCE: {
             return AccessInfo {
-                .access_flags = VK_ACCESS_UNIFORM_READ_BIT | VK_ACCESS_SHADER_READ_BIT,
-                .stage_flags = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                .image_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            };
-        case rhi::AccessFlags::TRANSFER_READ:
-            return AccessInfo {
-                .access_flags = VK_ACCESS_TRANSFER_READ_BIT,
-                .stage_flags = VK_PIPELINE_STAGE_TRANSFER_BIT,
+                .access_flags = VK_ACCESS_2_TRANSFER_READ_BIT,
+                .stage_flags = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
                 .image_layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
             };
-        case rhi::AccessFlags::HOST_READ:
+        }
+        case rhi::TextureAccessFlags::TRANSFER_DESTINATION: {
             return AccessInfo {
-                .access_flags = VK_ACCESS_HOST_READ_BIT,
-                .stage_flags = VK_PIPELINE_STAGE_HOST_BIT,
+                .access_flags = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                .stage_flags = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                .image_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            };
+        }
+        case rhi::TextureAccessFlags::COMPUTE_SAMPLED_IMAGE: {
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
+                .stage_flags = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                .image_layout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
+            };
+        }
+        case rhi::TextureAccessFlags::GRAPHICS_SAMPLED_IMAGE: {
+            VkPipelineStageFlags stage_flags = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT |
+                                               VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
+            if (supports_mesh_shaders) {
+                stage_flags |= VK_PIPELINE_STAGE_2_TASK_SHADER_BIT_EXT |
+                               VK_PIPELINE_STAGE_2_MESH_SHADER_BIT_EXT;
+            }
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
+                .stage_flags = stage_flags,
+                .image_layout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
+            };
+        }
+        case rhi::TextureAccessFlags::COMPUTE_STORAGE_IMAGE_READ: {
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_SHADER_STORAGE_READ_BIT,
+                .stage_flags = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
                 .image_layout = VK_IMAGE_LAYOUT_GENERAL,
             };
-        case rhi::AccessFlags::COLOR_ATTACHMENT_READ:
+        }
+        case rhi::TextureAccessFlags::COMPUTE_STORAGE_IMAGE_WRITE: {
             return AccessInfo {
-                .access_flags = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT,
-                .stage_flags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                .image_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                .access_flags = VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+                .stage_flags = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                .image_layout = VK_IMAGE_LAYOUT_GENERAL,
             };
-        case rhi::AccessFlags::DEPTH_STENCIL_ATTACHMENT_READ:
+        }
+        case rhi::TextureAccessFlags::COMPUTE_STORAGE_IMAGE: {
             return AccessInfo {
-                .access_flags = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
-                .stage_flags = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
-                               VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
-                .image_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
+                .access_flags = VK_ACCESS_2_SHADER_STORAGE_READ_BIT |
+                                VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+                .stage_flags = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                .image_layout = VK_IMAGE_LAYOUT_GENERAL,
             };
-        case rhi::AccessFlags::PRESENT:
-            return AccessInfo {
-                .access_flags = 0,
-                .stage_flags = 0,
-                .image_layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-            };
-        case rhi::AccessFlags::UAV_GRAPHICS: {
-            VkPipelineStageFlags stage_flags = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT |
-                                               VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        }
+        case rhi::TextureAccessFlags::GRAPHICS_STORAGE_IMAGE_READ: {
+            VkPipelineStageFlags stage_flags = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT |
+                                               VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
             if (supports_mesh_shaders) {
-                stage_flags |= VK_PIPELINE_STAGE_TASK_SHADER_BIT_EXT |
-                               VK_PIPELINE_STAGE_MESH_SHADER_BIT_EXT;
+                stage_flags |= VK_PIPELINE_STAGE_2_TASK_SHADER_BIT_EXT |
+                               VK_PIPELINE_STAGE_2_MESH_SHADER_BIT_EXT;
             }
-
             return AccessInfo {
-                .access_flags = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT,
+                .access_flags = VK_ACCESS_2_SHADER_STORAGE_READ_BIT,
                 .stage_flags = stage_flags,
                 .image_layout = VK_IMAGE_LAYOUT_GENERAL,
             };
         }
-        case rhi::AccessFlags::UAV_COMPUTE:
+        case rhi::TextureAccessFlags::GRAPHICS_STORAGE_IMAGE_WRITE: {
+            VkPipelineStageFlags stage_flags = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT |
+                                               VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
+            if (supports_mesh_shaders) {
+                stage_flags |= VK_PIPELINE_STAGE_2_TASK_SHADER_BIT_EXT |
+                               VK_PIPELINE_STAGE_2_MESH_SHADER_BIT_EXT;
+            }
             return AccessInfo {
-                .access_flags = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT,
-                .stage_flags = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                .access_flags = VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+                .stage_flags = stage_flags,
                 .image_layout = VK_IMAGE_LAYOUT_GENERAL,
             };
-        case rhi::AccessFlags::TRANSFER_WRITE:
+        }
+        case rhi::TextureAccessFlags::GRAPHICS_STORAGE_IMAGE: {
+            VkPipelineStageFlags stage_flags = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT |
+                                               VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
+            if (supports_mesh_shaders) {
+                stage_flags |= VK_PIPELINE_STAGE_2_TASK_SHADER_BIT_EXT |
+                               VK_PIPELINE_STAGE_2_MESH_SHADER_BIT_EXT;
+            }
             return AccessInfo {
-                .access_flags = VK_ACCESS_TRANSFER_WRITE_BIT,
-                .stage_flags = VK_PIPELINE_STAGE_TRANSFER_BIT,
-                .image_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            };
-        case rhi::AccessFlags::HOST_WRITE:
-            return AccessInfo {
-                .access_flags = VK_ACCESS_HOST_WRITE_BIT,
-                .stage_flags = VK_PIPELINE_STAGE_HOST_BIT,
+                .access_flags = VK_ACCESS_2_SHADER_STORAGE_READ_BIT |
+                                VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+                .stage_flags = stage_flags,
                 .image_layout = VK_IMAGE_LAYOUT_GENERAL,
             };
-        case rhi::AccessFlags::COLOR_ATTACHMENT_WRITE:
+        }
+        case rhi::TextureAccessFlags::COLOR_ATTACHMENT_READ: {
             return AccessInfo {
-                .access_flags = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-                .stage_flags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                .access_flags = VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT,
+                .stage_flags = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
                 .image_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
             };
-        case rhi::AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE:
+        }
+        case rhi::TextureAccessFlags::COLOR_ATTACHMENT_WRITE: {
             return AccessInfo {
-                .access_flags = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-                .stage_flags = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
-                               VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+                .access_flags = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                .stage_flags = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                .image_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            };
+        }
+        case rhi::TextureAccessFlags::COLOR_ATTACHMENT: {
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT |
+                                VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                .stage_flags = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                .image_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            };
+        }
+        case rhi::TextureAccessFlags::DEPTH_STENCIL_ATTACHMENT_READ: {
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
+                .stage_flags = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT |
+                               VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+                .image_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
+            };
+        }
+        case rhi::TextureAccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE: {
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                .stage_flags = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT |
+                               VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
                 .image_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
             };
+        }
+        case rhi::TextureAccessFlags::DEPTH_STENCIL_ATTACHMENT: {
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+                                VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                .stage_flags = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT |
+                               VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+                .image_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+            };
+        }
+        case rhi::TextureAccessFlags::PRESENT: {
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_TRANSFER_READ_BIT,
+                .stage_flags = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                .image_layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+            };
+        }
+        default: {
+            core::unreachable();
+        }
     }
-
-    core::panic("Invalid enum");
 }
 
-VkImageLayout map_access_flags_to_image_layout(
-    rhi::AccessFlags flags, const bool supports_mesh_shaders) noexcept
+AccessInfo get_access_info(
+    const rhi::BufferAccessFlags flag, const bool supports_mesh_shaders) noexcept
 {
-    core::Option<VkImageLayout> image_layout = std::nullopt;
-    if (flags != rhi::AccessFlags::NONE) {
-        for (usize i = 0; i <= static_cast<usize>(rhi::AccessFlags::MAX_VALUE); ++i) {
-            const rhi::AccessFlags flag = static_cast<rhi::AccessFlags>(1 << i);
+    switch (flag) {
+        case rhi::BufferAccessFlags::NONE: {
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_NONE,
+                .stage_flags = VK_PIPELINE_STAGE_2_NONE,
+                .image_layout = VK_IMAGE_LAYOUT_UNDEFINED,
+            };
+        }
+        case rhi::BufferAccessFlags::TRANSFER_SOURCE: {
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_TRANSFER_READ_BIT,
+                .stage_flags = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                .image_layout = VK_IMAGE_LAYOUT_UNDEFINED,
+            };
+        }
+        case rhi::BufferAccessFlags::TRANSFER_DESTINATION: {
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                .stage_flags = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                .image_layout = VK_IMAGE_LAYOUT_UNDEFINED,
+            };
+        }
+        case rhi::BufferAccessFlags::COMPUTE_STORAGE_BUFFER_READ: {
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_SHADER_READ_BIT,
+                .stage_flags = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                .image_layout = VK_IMAGE_LAYOUT_UNDEFINED,
+            };
+        }
+        case rhi::BufferAccessFlags::COMPUTE_STORAGE_BUFFER_WRITE: {
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_SHADER_WRITE_BIT,
+                .stage_flags = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                .image_layout = VK_IMAGE_LAYOUT_UNDEFINED,
+            };
+        }
+        case rhi::BufferAccessFlags::COMPUTE_STORAGE_BUFFER: {
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_SHADER_READ_BIT |
+                                VK_ACCESS_2_SHADER_WRITE_BIT,
+                .stage_flags = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                .image_layout = VK_IMAGE_LAYOUT_UNDEFINED,
+            };
+        }
+        case rhi::BufferAccessFlags::GRAPHICS_STORAGE_BUFFER_READ: {
+            VkPipelineStageFlags stage_flags = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT |
+                                               VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
+            if (supports_mesh_shaders) {
+                stage_flags |= VK_PIPELINE_STAGE_2_TASK_SHADER_BIT_EXT |
+                               VK_PIPELINE_STAGE_2_MESH_SHADER_BIT_EXT;
+            }
 
-            if (contains(flags, flag)) {
-                const AccessInfo access_info = get_access_info(
-                    flag, supports_mesh_shaders);
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_SHADER_READ_BIT,
+                .stage_flags = stage_flags,
+                .image_layout = VK_IMAGE_LAYOUT_UNDEFINED,
+            };
+        }
+        case rhi::BufferAccessFlags::GRAPHICS_STORAGE_BUFFER_WRITE: {
+            VkPipelineStageFlags stage_flags = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT |
+                                               VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
+            if (supports_mesh_shaders) {
+                stage_flags |= VK_PIPELINE_STAGE_2_TASK_SHADER_BIT_EXT |
+                               VK_PIPELINE_STAGE_2_MESH_SHADER_BIT_EXT;
+            }
 
-                if (image_layout) {
-                    const VkImageLayout new_layout = access_info.image_layout;
-                    const VkImageLayout old_layout = *image_layout;
-                    image_layout = [&] {
-                        if (old_layout == VK_IMAGE_LAYOUT_UNDEFINED) {
-                            // In this case we allow any layout.
-                            return new_layout;
-                        } else if (new_layout == VK_IMAGE_LAYOUT_UNDEFINED) {
-                            return old_layout;
-                        } else if (
-                            (old_layout ==
-                             VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL) &&
-                            (new_layout ==
-                             VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)) {
-                            // `DEPTH_STENCIL_ATTACHMENT_OPTIMAL` allows read and write access.
-                            return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-                        } else if (
-                            (old_layout ==
-                             VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) &&
-                            (new_layout ==
-                             VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL)) {
-                            // `DEPTH_STENCIL_ATTACHMENT_OPTIMAL` allows read and write access.
-                            return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-                        } else if (
-                            (old_layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) &&
-                            (new_layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)) {
-                            return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-                        } else {
-                            // At this point we don't have any valid combinations, so go with GENERAL.
-                            return VK_IMAGE_LAYOUT_GENERAL;
-                        }
-                    }();
-                } else {
-                    image_layout = access_info.image_layout;
-                }
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_SHADER_WRITE_BIT,
+                .stage_flags = stage_flags,
+                .image_layout = VK_IMAGE_LAYOUT_UNDEFINED,
+            };
+        }
+        case rhi::BufferAccessFlags::GRAPHICS_STORAGE_BUFFER: {
+            VkPipelineStageFlags stage_flags = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT |
+                                               VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
+            if (supports_mesh_shaders) {
+                stage_flags |= VK_PIPELINE_STAGE_2_TASK_SHADER_BIT_EXT |
+                               VK_PIPELINE_STAGE_2_MESH_SHADER_BIT_EXT;
+            }
+
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_SHADER_READ_BIT |
+                                VK_ACCESS_2_SHADER_WRITE_BIT,
+                .stage_flags = stage_flags,
+                .image_layout = VK_IMAGE_LAYOUT_UNDEFINED,
+            };
+        }
+        case rhi::BufferAccessFlags::UNIFORM_BUFFER: {
+            VkPipelineStageFlags stage_flags = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT |
+                                               VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT |
+                                               VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+            if (supports_mesh_shaders) {
+                stage_flags |= VK_PIPELINE_STAGE_2_TASK_SHADER_BIT_EXT |
+                               VK_PIPELINE_STAGE_2_MESH_SHADER_BIT_EXT;
+            }
+
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_UNIFORM_READ_BIT,
+                .stage_flags = stage_flags,
+                .image_layout = VK_IMAGE_LAYOUT_UNDEFINED,
+            };
+        }
+        case rhi::BufferAccessFlags::INDEX_BUFFER: {
+            VkPipelineStageFlags stage_flags = VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT |
+                                               VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT;
+
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_INDEX_READ_BIT,
+                .stage_flags = stage_flags,
+                .image_layout = VK_IMAGE_LAYOUT_UNDEFINED,
+            };
+        }
+        case rhi::BufferAccessFlags::VERTEX_BUFFER: {
+            VkPipelineStageFlags stage_flags = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT |
+                                               VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
+
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT,
+                .stage_flags = stage_flags,
+                .image_layout = VK_IMAGE_LAYOUT_UNDEFINED,
+            };
+        }
+        case rhi::BufferAccessFlags::INDIRECT_BUFFER: {
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT,
+                .stage_flags = VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT,
+                .image_layout = VK_IMAGE_LAYOUT_UNDEFINED,
+            };
+        }
+        default: {
+            core::unreachable();
+        }
+    }
+}
+
+// #TODO: This is kinda redundant 😒
+AccessInfo get_access_info(
+    const rhi::GlobalAccessFlags flag, const bool supports_mesh_shaders) noexcept
+{
+    switch (flag) {
+        case rhi::GlobalAccessFlags::NONE: {
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_NONE,
+                .stage_flags = VK_PIPELINE_STAGE_2_NONE,
+                .image_layout = VK_IMAGE_LAYOUT_UNDEFINED,
+            };
+        }
+        case rhi::GlobalAccessFlags::TRANSFER_SOURCE: {
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_TRANSFER_READ_BIT,
+                .stage_flags = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                .image_layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            };
+        }
+        case rhi::GlobalAccessFlags::TRANSFER_DESTINATION: {
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                .stage_flags = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                .image_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            };
+        }
+        case rhi::GlobalAccessFlags::COMPUTE_SAMPLED_IMAGE: {
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
+                .stage_flags = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                .image_layout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
+            };
+        }
+        case rhi::GlobalAccessFlags::GRAPHICS_SAMPLED_IMAGE: {
+            VkPipelineStageFlags stage_flags = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT |
+                                               VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
+            if (supports_mesh_shaders) {
+                stage_flags |= VK_PIPELINE_STAGE_2_TASK_SHADER_BIT_EXT |
+                               VK_PIPELINE_STAGE_2_MESH_SHADER_BIT_EXT;
+            }
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
+                .stage_flags = stage_flags,
+                .image_layout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
+            };
+        }
+        case rhi::GlobalAccessFlags::COMPUTE_STORAGE_IMAGE_READ: {
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_SHADER_STORAGE_READ_BIT,
+                .stage_flags = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                .image_layout = VK_IMAGE_LAYOUT_GENERAL,
+            };
+        }
+        case rhi::GlobalAccessFlags::COMPUTE_STORAGE_IMAGE_WRITE: {
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+                .stage_flags = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                .image_layout = VK_IMAGE_LAYOUT_GENERAL,
+            };
+        }
+        case rhi::GlobalAccessFlags::COMPUTE_STORAGE_IMAGE: {
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_SHADER_STORAGE_READ_BIT |
+                                VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+                .stage_flags = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                .image_layout = VK_IMAGE_LAYOUT_GENERAL,
+            };
+        }
+        case rhi::GlobalAccessFlags::GRAPHICS_STORAGE_IMAGE_READ: {
+            VkPipelineStageFlags stage_flags = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT |
+                                               VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
+            if (supports_mesh_shaders) {
+                stage_flags |= VK_PIPELINE_STAGE_2_TASK_SHADER_BIT_EXT |
+                               VK_PIPELINE_STAGE_2_MESH_SHADER_BIT_EXT;
+            }
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_SHADER_STORAGE_READ_BIT,
+                .stage_flags = stage_flags,
+                .image_layout = VK_IMAGE_LAYOUT_GENERAL,
+            };
+        }
+        case rhi::GlobalAccessFlags::GRAPHICS_STORAGE_IMAGE_WRITE: {
+            VkPipelineStageFlags stage_flags = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT |
+                                               VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
+            if (supports_mesh_shaders) {
+                stage_flags |= VK_PIPELINE_STAGE_2_TASK_SHADER_BIT_EXT |
+                               VK_PIPELINE_STAGE_2_MESH_SHADER_BIT_EXT;
+            }
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+                .stage_flags = stage_flags,
+                .image_layout = VK_IMAGE_LAYOUT_GENERAL,
+            };
+        }
+        case rhi::GlobalAccessFlags::GRAPHICS_STORAGE_IMAGE: {
+            VkPipelineStageFlags stage_flags = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT |
+                                               VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
+            if (supports_mesh_shaders) {
+                stage_flags |= VK_PIPELINE_STAGE_2_TASK_SHADER_BIT_EXT |
+                               VK_PIPELINE_STAGE_2_MESH_SHADER_BIT_EXT;
+            }
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_SHADER_STORAGE_READ_BIT |
+                                VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+                .stage_flags = stage_flags,
+                .image_layout = VK_IMAGE_LAYOUT_GENERAL,
+            };
+        }
+        case rhi::GlobalAccessFlags::COLOR_ATTACHMENT_READ: {
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT,
+                .stage_flags = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                .image_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            };
+        }
+        case rhi::GlobalAccessFlags::COLOR_ATTACHMENT_WRITE: {
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                .stage_flags = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                .image_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            };
+        }
+        case rhi::GlobalAccessFlags::COLOR_ATTACHMENT: {
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT |
+                                VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                .stage_flags = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                .image_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            };
+        }
+        case rhi::GlobalAccessFlags::DEPTH_STENCIL_ATTACHMENT_READ: {
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
+                .stage_flags = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT |
+                               VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+                .image_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
+            };
+        }
+        case rhi::GlobalAccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE: {
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                .stage_flags = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT |
+                               VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+                .image_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+            };
+        }
+        case rhi::GlobalAccessFlags::DEPTH_STENCIL_ATTACHMENT: {
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+                                VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                .stage_flags = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT |
+                               VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+                .image_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+            };
+        }
+        case rhi::GlobalAccessFlags::PRESENT: {
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_TRANSFER_READ_BIT,
+                .stage_flags = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                .image_layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+            };
+        }
+        case rhi::GlobalAccessFlags::COMPUTE_STORAGE_BUFFER_READ: {
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_SHADER_READ_BIT,
+                .stage_flags = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                .image_layout = VK_IMAGE_LAYOUT_UNDEFINED,
+            };
+        }
+        case rhi::GlobalAccessFlags::COMPUTE_STORAGE_BUFFER_WRITE: {
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_SHADER_WRITE_BIT,
+                .stage_flags = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                .image_layout = VK_IMAGE_LAYOUT_UNDEFINED,
+            };
+        }
+        case rhi::GlobalAccessFlags::COMPUTE_STORAGE_BUFFER: {
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_SHADER_READ_BIT |
+                                VK_ACCESS_2_SHADER_WRITE_BIT,
+                .stage_flags = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                .image_layout = VK_IMAGE_LAYOUT_UNDEFINED,
+            };
+        }
+        case rhi::GlobalAccessFlags::GRAPHICS_STORAGE_BUFFER_READ: {
+            VkPipelineStageFlags stage_flags = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT |
+                                               VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
+            if (supports_mesh_shaders) {
+                stage_flags |= VK_PIPELINE_STAGE_2_TASK_SHADER_BIT_EXT |
+                               VK_PIPELINE_STAGE_2_MESH_SHADER_BIT_EXT;
+            }
+
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_SHADER_READ_BIT,
+                .stage_flags = stage_flags,
+                .image_layout = VK_IMAGE_LAYOUT_UNDEFINED,
+            };
+        }
+        case rhi::GlobalAccessFlags::GRAPHICS_STORAGE_BUFFER_WRITE: {
+            VkPipelineStageFlags stage_flags = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT |
+                                               VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
+            if (supports_mesh_shaders) {
+                stage_flags |= VK_PIPELINE_STAGE_2_TASK_SHADER_BIT_EXT |
+                               VK_PIPELINE_STAGE_2_MESH_SHADER_BIT_EXT;
+            }
+
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_SHADER_WRITE_BIT,
+                .stage_flags = stage_flags,
+                .image_layout = VK_IMAGE_LAYOUT_UNDEFINED,
+            };
+        }
+        case rhi::GlobalAccessFlags::GRAPHICS_STORAGE_BUFFER: {
+            VkPipelineStageFlags stage_flags = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT |
+                                               VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
+            if (supports_mesh_shaders) {
+                stage_flags |= VK_PIPELINE_STAGE_2_TASK_SHADER_BIT_EXT |
+                               VK_PIPELINE_STAGE_2_MESH_SHADER_BIT_EXT;
+            }
+
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_SHADER_READ_BIT |
+                                VK_ACCESS_2_SHADER_WRITE_BIT,
+                .stage_flags = stage_flags,
+                .image_layout = VK_IMAGE_LAYOUT_UNDEFINED,
+            };
+        }
+        case rhi::GlobalAccessFlags::UNIFORM_BUFFER: {
+            VkPipelineStageFlags stage_flags = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT |
+                                               VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT |
+                                               VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+            if (supports_mesh_shaders) {
+                stage_flags |= VK_PIPELINE_STAGE_2_TASK_SHADER_BIT_EXT |
+                               VK_PIPELINE_STAGE_2_MESH_SHADER_BIT_EXT;
+            }
+
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_UNIFORM_READ_BIT,
+                .stage_flags = stage_flags,
+                .image_layout = VK_IMAGE_LAYOUT_UNDEFINED,
+            };
+        }
+        case rhi::GlobalAccessFlags::INDEX_BUFFER: {
+            VkPipelineStageFlags2 stage_flags = VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT |
+                                                VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT;
+
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_INDEX_READ_BIT,
+                .stage_flags = stage_flags,
+                .image_layout = VK_IMAGE_LAYOUT_UNDEFINED,
+            };
+        }
+        case rhi::GlobalAccessFlags::VERTEX_BUFFER: {
+            VkPipelineStageFlags stage_flags = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT |
+                                               VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
+
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT,
+                .stage_flags = stage_flags,
+                .image_layout = VK_IMAGE_LAYOUT_UNDEFINED,
+            };
+        }
+        case rhi::GlobalAccessFlags::INDIRECT_BUFFER: {
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT,
+                .stage_flags = VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT,
+                .image_layout = VK_IMAGE_LAYOUT_UNDEFINED,
+            };
+        }
+        case rhi::GlobalAccessFlags::ALL: {
+            return AccessInfo {
+                .access_flags = VK_ACCESS_2_MEMORY_READ_BIT |
+                                VK_ACCESS_2_MEMORY_WRITE_BIT,
+                .stage_flags = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                .image_layout = VK_IMAGE_LAYOUT_UNDEFINED,
+            };
+        }
+        default: {
+            core::unreachable();
+        }
+    }
+}
+
+VkImageLayout map_texture_access_flags_to_image_layout(
+    rhi::TextureAccessFlags flags, const bool supports_mesh_shaders) noexcept
+{
+    core::Option<VkImageLayout> image_layout;
+
+    constexpr usize num_bits = (sizeof(flags) * 8);
+    for (usize i = 0; i <= num_bits; ++i) {
+        const rhi::TextureAccessFlags flag //
+            = static_cast<rhi::TextureAccessFlags>(1 << i);
+
+        if (contains(flags, flag)) {
+            const AccessInfo access_info = get_access_info(flag, supports_mesh_shaders);
+            if (image_layout) {
+                const VkImageLayout new_layout = access_info.image_layout;
+                const VkImageLayout old_layout = *image_layout;
+                image_layout = [&] {
+                    if (old_layout == VK_IMAGE_LAYOUT_UNDEFINED) {
+                        // In this case we allow any layout.
+                        return new_layout;
+                    } else if (new_layout == VK_IMAGE_LAYOUT_UNDEFINED) {
+                        return old_layout;
+                    } else if (
+                        (old_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL) &&
+                        (new_layout ==
+                         VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)) {
+                        // `DEPTH_STENCIL_ATTACHMENT_OPTIMAL` allows read and write access.
+                        return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+                    } else if (
+                        (old_layout ==
+                         VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) &&
+                        (new_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL)) {
+                        // `DEPTH_STENCIL_ATTACHMENT_OPTIMAL` allows read and write access.
+                        return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+                    } else if (
+                        (old_layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) &&
+                        (new_layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)) {
+                        return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                    } else {
+                        // At this point we don't have any valid combinations, so go with GENERAL.
+                        return VK_IMAGE_LAYOUT_GENERAL;
+                    }
+                }();
+            } else {
+                image_layout = access_info.image_layout;
             }
         }
     }
@@ -1011,48 +1461,49 @@ VkImageLayout map_access_flags_to_image_layout(
     return image_layout.value_or(VK_IMAGE_LAYOUT_UNDEFINED);
 }
 
-VkAccessFlags to_access_flags(const VkImageLayout image_layout) noexcept
+VkAccessFlags2 to_access_flags(const VkImageLayout image_layout) noexcept
 {
     switch (image_layout) {
         case VK_IMAGE_LAYOUT_UNDEFINED:
         case VK_IMAGE_LAYOUT_GENERAL:
         case VK_IMAGE_LAYOUT_PREINITIALIZED: {
-            return 0;
+            return VK_ACCESS_2_MEMORY_READ_BIT | VK_ACCESS_2_MEMORY_WRITE_BIT;
         }
         case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL: {
-            return VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+            return VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT |
+                   VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
         }
         case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
         case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL:
         case VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL: {
-            return VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
-                   VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+            return VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+                   VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
         }
         case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
         case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL:
         case VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL: {
-            return VK_ACCESS_SHADER_READ_BIT |
-                   VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+            return VK_ACCESS_2_SHADER_READ_BIT |
+                   VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
         }
         case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL: {
-            return VK_ACCESS_SHADER_READ_BIT;
+            return VK_ACCESS_2_SHADER_READ_BIT;
         }
         case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL: {
-            return VK_ACCESS_TRANSFER_READ_BIT;
+            return VK_ACCESS_2_TRANSFER_READ_BIT;
         }
         case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL: {
-            return VK_ACCESS_TRANSFER_WRITE_BIT;
+            return VK_ACCESS_2_TRANSFER_WRITE_BIT;
         }
         case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL:
         case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL:
-            return VK_ACCESS_SHADER_READ_BIT |
-                   VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
-                   VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+            return VK_ACCESS_2_SHADER_READ_BIT |
+                   VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+                   VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
         case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR: {
-            return VK_ACCESS_MEMORY_READ_BIT;
+            return VK_ACCESS_2_MEMORY_READ_BIT;
         }
         case VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT: {
-            return VK_ACCESS_FRAGMENT_DENSITY_MAP_READ_BIT_EXT;
+            return VK_ACCESS_2_FRAGMENT_DENSITY_MAP_READ_BIT_EXT;
         }
 
         default:
@@ -1060,91 +1511,90 @@ VkAccessFlags to_access_flags(const VkImageLayout image_layout) noexcept
     }
 }
 
-VkPipelineStageFlags image_layout_to_pipeline_stage(
+VkPipelineStageFlags2 image_layout_to_pipeline_stage(
     const VkImageLayout image_layout) noexcept
 {
     switch (image_layout) {
         case VK_IMAGE_LAYOUT_UNDEFINED:
         case VK_IMAGE_LAYOUT_GENERAL:
         case VK_IMAGE_LAYOUT_PREINITIALIZED: {
-            return 0;
+            return VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT;
         }
         case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL: {
-            return VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+            return VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
         }
         case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
         case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL:
         case VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL: {
-            return VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
-                   VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+            return VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT |
+                   VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
         }
         case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL:
         case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL:
         case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL:
         case VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL:
         case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL: {
-            return VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
-                   VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
-                   VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+            return VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT |
+                   VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT |
+                   VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
         }
         case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL: {
-            return VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+            return VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
         }
         case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
         case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL: {
-            return VK_PIPELINE_STAGE_TRANSFER_BIT;
+            return VK_PIPELINE_STAGE_2_TRANSFER_BIT;
         }
         case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR: {
-            return VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+            return VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
         }
-
         default:
             core::panic("Unsupported layout!");
     }
 }
 
-VkPipelineStageFlags map_synchronization_stage(
+VkPipelineStageFlags2 map_synchronization_stage(
     const rhi::SynchronizationStage stage_mask) noexcept
 {
     using rhi::SynchronizationStage;
-    VkPipelineStageFlags flags {};
+    VkPipelineStageFlags2 flags {};
 
     if (stage_mask == SynchronizationStage::NONE) {
         return flags;
     }
 
-    if (contains(stage_mask, SynchronizationStage::TOP_OF_PIPE)) {
-        flags |= VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    if (contains(stage_mask, SynchronizationStage::NONE)) {
+        flags |= VK_PIPELINE_STAGE_2_NONE;
     }
-    if (contains(stage_mask, SynchronizationStage::BOTTOM_OF_PIPE)) {
-        flags |= VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+    if (contains(stage_mask, SynchronizationStage::ALL_COMMANDS)) {
+        flags |= VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
     }
     if (contains(stage_mask, SynchronizationStage::EARLY_FRAGMENT_TESTS)) {
-        flags |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        flags |= VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT;
     }
     if (contains(stage_mask, SynchronizationStage::LATE_FRAGMENT_TESTS)) {
-        flags |= VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+        flags |= VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
     }
     if (contains(stage_mask, SynchronizationStage::VERTEX_SHADER)) {
-        flags |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
+        flags |= VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
     }
     if (contains(stage_mask, SynchronizationStage::FRAGMENT_SHADER)) {
-        flags |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        flags |= VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
     }
     if (contains(stage_mask, SynchronizationStage::TASK_SHADER)) {
-        flags |= VK_PIPELINE_STAGE_TASK_SHADER_BIT_EXT;
+        flags |= VK_PIPELINE_STAGE_2_TASK_SHADER_BIT_EXT;
     }
     if (contains(stage_mask, SynchronizationStage::MESH_SHADER)) {
-        flags |= VK_PIPELINE_STAGE_MESH_SHADER_BIT_EXT;
+        flags |= VK_PIPELINE_STAGE_2_MESH_SHADER_BIT_EXT;
     }
     if (contains(stage_mask, SynchronizationStage::COMPUTE_SHADER)) {
-        flags |= VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        flags |= VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
     }
     if (contains(stage_mask, SynchronizationStage::TRANSFER)) {
-        flags |= VK_PIPELINE_STAGE_TRANSFER_BIT;
+        flags |= VK_PIPELINE_STAGE_2_TRANSFER_BIT;
     }
     if (contains(stage_mask, SynchronizationStage::ALL_GRAPHICS)) {
-        flags |= VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+        flags |= VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT;
     }
 
     return flags;

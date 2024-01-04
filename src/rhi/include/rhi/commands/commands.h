@@ -192,12 +192,12 @@ struct RHI_API BufferCopyCommand : public Command<CommandType::BufferCopy> {
 struct RHI_API TextureCopyCommand : public Command<CommandType::TextureCopy> {
     TextureHandle src;
     /// Texture access. Used to determine the current texture layout.
-    /// Must be `AccessFlags::TRANSFER_READ` or `AccessFlags::GENERAL`.
-    AccessFlags src_texture_access = AccessFlags::GENERAL;
+    /// Must be `TextureAccessFlags::TRANSFER_READ` or `TextureAccessFlags::GENERAL`.
+    TextureAccessFlags src_texture_access = TextureAccessFlags::NONE;
     TextureHandle dst;
     /// Texture access. Used to determine the current texture layout.
-    /// Must be `AccessFlags::TRANSFER_WRITE` or `AccessFlags::GENERAL`.
-    AccessFlags dst_texture_access = AccessFlags::GENERAL;
+    /// Must be `TextureAccessFlags::TRANSFER_WRITE` or `TextureAccessFlags::GENERAL`.
+    TextureAccessFlags dst_texture_access = TextureAccessFlags::NONE;
     core::Array<TextureCopyRegion> regions;
 };
 
@@ -205,16 +205,16 @@ struct RHI_API BufferTextureCopyCommand : public Command<CommandType::BufferText
     BufferHandle src;
     TextureHandle dst;
     /// Texture access. Used to determine the current texture layout.
-    /// Must be `AccessFlags::TRANSFER_WRITE` or `AccessFlags::GENERAL`.
-    AccessFlags texture_access = AccessFlags::GENERAL;
+    /// Must be `TextureAccessFlags::TRANSFER_WRITE` or `TextureAccessFlags::GENERAL`.
+    TextureAccessFlags texture_access = TextureAccessFlags::NONE;
     core::Array<BufferTextureCopyRegion> regions;
 };
 
 struct RHI_API TextureBufferCopyCommand : public Command<CommandType::TextureBufferCopy> {
     TextureHandle src;
     /// Texture access. Used to determine the current texture layout.
-    /// Must be `AccessFlags::TRANSFER_READ` or `AccessFlags::GENERAL`.
-    AccessFlags texture_access = AccessFlags::GENERAL;
+    /// Must be `TextureAccessFlags::TRANSFER_READ` or `TextureAccessFlags::GENERAL`.
+    TextureAccessFlags texture_access = TextureAccessFlags::NONE;
     BufferHandle dst;
     core::Array<BufferTextureCopyRegion> regions;
 };

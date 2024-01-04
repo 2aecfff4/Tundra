@@ -3,6 +3,8 @@
 #include "rhi/commands/command_encoder.h"
 #include "rhi/commands/dispatch_indirect.h"
 #include "rhi/commands/draw_indirect.h"
+#include "rhi/resources/buffer.h"
+#include "rhi/resources/texture.h"
 #include "rhi/validation_layers.h"
 #include <algorithm>
 
@@ -67,10 +69,10 @@ private:
 
 private:
     [[nodiscard]] bool validate_access_flags(
-        const rhi::AccessFlags access_flags,
+        const rhi::BufferAccessFlags access_flags,
         const rhi::BufferUsageFlags buffer_usage) noexcept;
     [[nodiscard]] bool validate_access_flags(
-        const rhi::AccessFlags access_flags,
+        const rhi::TextureAccessFlags access_flags,
         const rhi::TextureUsageFlags texture_usage) noexcept;
 };
 
@@ -1005,98 +1007,113 @@ void CommandEncoderValidator::buffer_barrier(
 }
 
 bool CommandEncoderValidator::validate_access_flags(
-    const rhi::AccessFlags access_flags,
+    const rhi::BufferAccessFlags access_flags,
     const rhi::BufferUsageFlags buffer_usage) noexcept
 {
     bool is_allowed = true;
 
-    if (contains(access_flags, AccessFlags::TRANSFER_READ)) {
-        is_allowed = std::min(
-            is_allowed, contains(buffer_usage, BufferUsageFlags::TRANSFER_SOURCE));
+    if (contains(access_flags, BufferAccessFlags::TRANSFER_SOURCE)) {
+        is_allowed &= contains(buffer_usage, BufferUsageFlags::TRANSFER_SOURCE);
     }
-
-    if (contains(access_flags, AccessFlags::TRANSFER_WRITE)) {
-        is_allowed = std::min(
-            is_allowed, contains(buffer_usage, BufferUsageFlags::TRANSFER_DESTINATION));
+    if (contains(access_flags, BufferAccessFlags::TRANSFER_DESTINATION)) {
+        is_allowed &= contains(buffer_usage, BufferUsageFlags::TRANSFER_DESTINATION);
     }
-
-    if (intersects(access_flags, AccessFlags::SRV_GRAPHICS | AccessFlags::SRV_COMPUTE)) {
-        is_allowed = std::min(is_allowed, contains(buffer_usage, BufferUsageFlags::SRV));
+    if (contains(access_flags, BufferAccessFlags::COMPUTE_STORAGE_BUFFER_READ)) {
+        is_allowed &= contains(buffer_usage, BufferUsageFlags::STORAGE_BUFFER);
     }
-
-    if (intersects(access_flags, AccessFlags::UAV_GRAPHICS | AccessFlags::UAV_COMPUTE)) {
-        is_allowed = std::min(is_allowed, contains(buffer_usage, BufferUsageFlags::UAV));
+    if (contains(access_flags, BufferAccessFlags::COMPUTE_STORAGE_BUFFER_WRITE)) {
+        is_allowed &= contains(buffer_usage, BufferUsageFlags::STORAGE_BUFFER);
     }
-
-    // if (contains(access_flags, AccessFlags::INDIRECT_BUFFER)) {
-    //     is_allowed = std::min(
-    //         is_allowed, contains(buffer_usage, BufferUsageFlags::CBV));
-    // }
-
-    if (contains(access_flags, AccessFlags::INDEX_BUFFER)) {
-        is_allowed = std::min(
-            is_allowed, contains(buffer_usage, BufferUsageFlags::INDEX_BUFFER));
+    if (contains(access_flags, BufferAccessFlags::COMPUTE_STORAGE_BUFFER)) {
+        is_allowed &= contains(buffer_usage, BufferUsageFlags::STORAGE_BUFFER);
     }
-
-    if (contains(access_flags, AccessFlags::VERTEX_BUFFER)) {
-        is_allowed = std::min(
-            is_allowed, contains(buffer_usage, BufferUsageFlags::VERTEX_BUFFER));
+    if (contains(access_flags, BufferAccessFlags::GRAPHICS_STORAGE_BUFFER_READ)) {
+        is_allowed &= contains(buffer_usage, BufferUsageFlags::STORAGE_BUFFER);
     }
-
-    if (contains(access_flags, AccessFlags::INDIRECT_BUFFER)) {
-        is_allowed = std::min(
-            is_allowed, contains(buffer_usage, BufferUsageFlags::INDIRECT_BUFFER));
+    if (contains(access_flags, BufferAccessFlags::GRAPHICS_STORAGE_BUFFER_WRITE)) {
+        is_allowed &= contains(buffer_usage, BufferUsageFlags::STORAGE_BUFFER);
+    }
+    if (contains(access_flags, BufferAccessFlags::GRAPHICS_STORAGE_BUFFER)) {
+        is_allowed &= contains(buffer_usage, BufferUsageFlags::STORAGE_BUFFER);
+    }
+    if (contains(access_flags, BufferAccessFlags::UNIFORM_BUFFER)) {
+        is_allowed &= contains(buffer_usage, BufferUsageFlags::UNIFORM_BUFFER);
+    }
+    if (contains(access_flags, BufferAccessFlags::INDEX_BUFFER)) {
+        is_allowed &= contains(buffer_usage, BufferUsageFlags::INDEX_BUFFER);
+    }
+    if (contains(access_flags, BufferAccessFlags::VERTEX_BUFFER)) {
+        is_allowed &= contains(buffer_usage, BufferUsageFlags::VERTEX_BUFFER);
+    }
+    if (contains(access_flags, BufferAccessFlags::INDIRECT_BUFFER)) {
+        is_allowed &= contains(buffer_usage, BufferUsageFlags::INDIRECT_BUFFER);
     }
 
     return is_allowed;
 }
 
 bool CommandEncoderValidator::validate_access_flags(
-    const rhi::AccessFlags access_flags,
+    const rhi::TextureAccessFlags access_flags,
     const rhi::TextureUsageFlags texture_usage) noexcept
 {
     bool is_allowed = true;
 
-    if (intersects(access_flags, AccessFlags::COLOR_ATTACHMENT)) {
-        is_allowed = std::min(
-            is_allowed, contains(texture_usage, TextureUsageFlags::COLOR_ATTACHMENT));
+    if (intersects(access_flags, TextureAccessFlags::TRANSFER_SOURCE)) {
+        is_allowed &= contains(texture_usage, TextureUsageFlags::TRANSFER_SOURCE);
     }
-
-    if (intersects(access_flags, AccessFlags::DEPTH_STENCIL_ATTACHMENT)) {
-        is_allowed = std::min(
-            is_allowed,
-            intersects(
-                texture_usage,
-                TextureUsageFlags::DEPTH_ATTACHMENT |
-                    TextureUsageFlags::STENCIL_ATTACHMENT));
+    if (intersects(access_flags, TextureAccessFlags::TRANSFER_DESTINATION)) {
+        is_allowed &= contains(texture_usage, TextureUsageFlags::TRANSFER_DESTINATION);
     }
-
-    if (intersects(access_flags, AccessFlags::SRV_GRAPHICS | AccessFlags::SRV_COMPUTE)) {
-        is_allowed = std::min(
-            is_allowed, contains(texture_usage, TextureUsageFlags::SRV));
+    if (intersects(access_flags, TextureAccessFlags::GRAPHICS_SAMPLED_IMAGE)) {
+        is_allowed &= contains(texture_usage, TextureUsageFlags::SRV);
     }
-
-    if (intersects(access_flags, AccessFlags::UAV_GRAPHICS | AccessFlags::UAV_COMPUTE)) {
-        is_allowed = std::min(
-            is_allowed, contains(texture_usage, TextureUsageFlags::UAV));
+    if (intersects(access_flags, TextureAccessFlags::COMPUTE_SAMPLED_IMAGE)) {
+        is_allowed &= contains(texture_usage, TextureUsageFlags::SRV);
     }
-
-    if (contains(access_flags, AccessFlags::TRANSFER_READ)) {
-        is_allowed = std::min(
-            is_allowed,
-            intersects(
-                texture_usage,
-                TextureUsageFlags::TRANSFER_SOURCE | TextureUsageFlags::PRESENT));
+    if (intersects(access_flags, TextureAccessFlags::COMPUTE_STORAGE_IMAGE_READ)) {
+        is_allowed &= contains(texture_usage, TextureUsageFlags::UAV);
     }
-
-    if (contains(access_flags, AccessFlags::TRANSFER_WRITE)) {
-        is_allowed = std::min(
-            is_allowed, contains(texture_usage, TextureUsageFlags::TRANSFER_DESTINATION));
+    if (intersects(access_flags, TextureAccessFlags::COMPUTE_STORAGE_IMAGE_WRITE)) {
+        is_allowed &= contains(texture_usage, TextureUsageFlags::UAV);
     }
-
-    if (contains(access_flags, AccessFlags::PRESENT)) {
-        is_allowed = std::min(
-            is_allowed, contains(texture_usage, TextureUsageFlags::PRESENT));
+    if (intersects(access_flags, TextureAccessFlags::COMPUTE_STORAGE_IMAGE)) {
+        is_allowed &= contains(texture_usage, TextureUsageFlags::UAV);
+    }
+    if (intersects(access_flags, TextureAccessFlags::GRAPHICS_STORAGE_IMAGE_READ)) {
+        is_allowed &= contains(texture_usage, TextureUsageFlags::UAV);
+    }
+    if (intersects(access_flags, TextureAccessFlags::GRAPHICS_STORAGE_IMAGE_WRITE)) {
+        is_allowed &= contains(texture_usage, TextureUsageFlags::UAV);
+    }
+    if (intersects(access_flags, TextureAccessFlags::GRAPHICS_STORAGE_IMAGE)) {
+        is_allowed &= contains(texture_usage, TextureUsageFlags::UAV);
+    }
+    if (intersects(access_flags, TextureAccessFlags::COLOR_ATTACHMENT_READ)) {
+        is_allowed &= contains(texture_usage, TextureUsageFlags::COLOR_ATTACHMENT);
+    }
+    if (intersects(access_flags, TextureAccessFlags::COLOR_ATTACHMENT_WRITE)) {
+        is_allowed &= contains(texture_usage, TextureUsageFlags::COLOR_ATTACHMENT);
+    }
+    if (intersects(access_flags, TextureAccessFlags::COLOR_ATTACHMENT)) {
+        is_allowed &= contains(texture_usage, TextureUsageFlags::COLOR_ATTACHMENT);
+    }
+    if (intersects(access_flags, TextureAccessFlags::DEPTH_STENCIL_ATTACHMENT_READ)) {
+        is_allowed &= intersects(
+            texture_usage,
+            TextureUsageFlags::DEPTH_ATTACHMENT | TextureUsageFlags::STENCIL_ATTACHMENT);
+    }
+    if (intersects(access_flags, TextureAccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE)) {
+        is_allowed &= intersects(
+            texture_usage,
+            TextureUsageFlags::DEPTH_ATTACHMENT | TextureUsageFlags::STENCIL_ATTACHMENT);
+    }
+    if (intersects(access_flags, TextureAccessFlags::DEPTH_STENCIL_ATTACHMENT)) {
+        is_allowed &= intersects(
+            texture_usage,
+            TextureUsageFlags::DEPTH_ATTACHMENT | TextureUsageFlags::STENCIL_ATTACHMENT);
+    }
+    if (intersects(access_flags, TextureAccessFlags::PRESENT)) {
+        is_allowed &= contains(texture_usage, TextureUsageFlags::PRESENT);
     }
 
     return is_allowed;

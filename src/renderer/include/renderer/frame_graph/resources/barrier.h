@@ -9,19 +9,21 @@
 namespace tundra::renderer::frame_graph {
 
 ///
-using AccessFlags = rhi::AccessFlags;
+using GlobalAccessFlags = rhi::GlobalAccessFlags;
+using BufferAccessFlags = rhi::BufferAccessFlags;
+using TextureAccessFlags = rhi::TextureAccessFlags;
 
 ///
 struct RENDERER_API GlobalBarrier {
-    AccessFlags previous_access = AccessFlags::ANY_WRITE;
-    AccessFlags next_access = AccessFlags::GENERAL;
+    GlobalAccessFlags previous_access = GlobalAccessFlags::ALL;
+    GlobalAccessFlags next_access = GlobalAccessFlags::ALL;
 };
 
 ///
 struct RENDERER_API TextureBarrier {
     ResourceId texture = NULL_RESOURCE_ID;
-    AccessFlags previous_access = AccessFlags::ANY_WRITE;
-    AccessFlags next_access = AccessFlags::GENERAL;
+    TextureAccessFlags previous_access = TextureAccessFlags::NONE;
+    TextureAccessFlags next_access = TextureAccessFlags::NONE;
     core::Option<QueueType> source_queue;
     core::Option<QueueType> destination_queue;
     bool discard_contents = false;
@@ -30,8 +32,8 @@ struct RENDERER_API TextureBarrier {
 ///
 struct RENDERER_API BufferBarrier {
     ResourceId buffer = NULL_RESOURCE_ID;
-    AccessFlags previous_access = AccessFlags::ANY_WRITE;
-    AccessFlags next_access = AccessFlags::GENERAL;
+    BufferAccessFlags previous_access = BufferAccessFlags::NONE;
+    BufferAccessFlags next_access = BufferAccessFlags::NONE;
     core::Option<QueueType> source_queue;
     core::Option<QueueType> destination_queue;
 };

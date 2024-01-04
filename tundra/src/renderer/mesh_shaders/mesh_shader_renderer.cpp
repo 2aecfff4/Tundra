@@ -46,15 +46,15 @@ RenderOutput mesh_shader_renderer(
             const auto ubo_buffer = builder.create_buffer(
                 "ubo_buffer",
                 frame_graph::BufferCreateInfo {
-                    .usage = frame_graph::BufferUsageFlags::SRV,
+                    .usage = frame_graph::BufferUsageFlags::STORAGE_BUFFER,
                     .memory_type = frame_graph::MemoryType::Dynamic,
                     .size = ubo_size,
                 });
 
             builder.write(
                 ubo_buffer,
-                frame_graph::ResourceUsage::SHADER_COMPUTE |
-                    frame_graph::ResourceUsage::SHADER_GRAPHICS);
+                frame_graph::BufferResourceUsage::COMPUTE_STORAGE_BUFFER |
+                    frame_graph::BufferResourceUsage::GRAPHICS_STORAGE_BUFFER);
 
             return UboData {
                 .ubo_buffer = core::make_shared<UboBuffer>(ubo_buffer, ubo_size),
