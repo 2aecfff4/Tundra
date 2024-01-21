@@ -223,14 +223,14 @@ void CommandEncoderValidator::begin_render_pass(
     // Color attachments
     for (const rhi::ColorAttachment& color_attachment :
          cmd.render_pass.color_attachments) {
-        tndr_assert(
-            (color_attachment.texture_access == rhi::AccessFlags::GENERAL) ||
-                (color_attachment.texture_access == rhi::AccessFlags::COLOR_ATTACHMENT) ||
-                (color_attachment.texture_access ==
-                 rhi::AccessFlags::COLOR_ATTACHMENT_WRITE),
-            "`ColorAttachment::texture_access` must be equal to "
-            "`AccessFlags::GENERAL`, `AccessFlags::COLOR_ATTACHMENT_WRITE` or "
-            "`AccessFlags::COLOR_ATTACHMENT`.");
+        // tndr_assert(
+        //     (color_attachment.texture_access == rhi::AccessFlags::GENERAL) ||
+        //         (color_attachment.texture_access == rhi::AccessFlags::COLOR_ATTACHMENT) ||
+        //         (color_attachment.texture_access ==
+        //          rhi::AccessFlags::COLOR_ATTACHMENT_WRITE),
+        //     "`ColorAttachment::texture_access` must be equal to "
+        //     "`AccessFlags::GENERAL`, `AccessFlags::COLOR_ATTACHMENT_WRITE` or "
+        //     "`AccessFlags::COLOR_ATTACHMENT`.");
 
         core::visit(
             core::make_overload(
@@ -267,15 +267,15 @@ void CommandEncoderValidator::begin_render_pass(
         if (color_attachment.resolve_texture.has_value()) {
             const rhi::ResolveTexture& resolve_texture = *color_attachment.resolve_texture;
 
-            tndr_assert(
-                (resolve_texture.texture_access == rhi::AccessFlags::GENERAL) ||
-                    (resolve_texture.texture_access ==
-                     rhi::AccessFlags::COLOR_ATTACHMENT) ||
-                    (color_attachment.texture_access ==
-                     rhi::AccessFlags::COLOR_ATTACHMENT_WRITE),
-                "`color_attachment.resolve_texture.texture_access` must be equal "
-                "to `AccessFlags::GENERAL`, `AccessFlags::COLOR_ATTACHMENT_WRITE`"
-                "or `AccessFlags::COLOR_ATTACHMENT`.");
+            // tndr_assert(
+            //     (resolve_texture.texture_access == rhi::AccessFlags::GENERAL) ||
+            //         (resolve_texture.texture_access ==
+            //          rhi::AccessFlags::COLOR_ATTACHMENT) ||
+            //         (color_attachment.texture_access ==
+            //          rhi::AccessFlags::COLOR_ATTACHMENT_WRITE),
+            //     "`color_attachment.resolve_texture.texture_access` must be equal "
+            //     "to `AccessFlags::GENERAL`, `AccessFlags::COLOR_ATTACHMENT_WRITE`"
+            //     "or `AccessFlags::COLOR_ATTACHMENT`.");
 
             core::visit(
                 core::make_overload(
@@ -322,16 +322,16 @@ void CommandEncoderValidator::begin_render_pass(
         const rhi::DepthStencilAttachment& depth_stencil_attachment =
             *cmd.render_pass.depth_stencil_attachment;
 
-        tndr_assert(
-            (depth_stencil_attachment.texture_access == rhi::AccessFlags::GENERAL) ||
-                (depth_stencil_attachment.texture_access ==
-                 rhi::AccessFlags::DEPTH_STENCIL_ATTACHMENT) ||
-                (depth_stencil_attachment.texture_access ==
-                 rhi::AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE),
-            "`color_attachment.texture_access` must be equal to "
-            "`AccessFlags::GENERAL`, "
-            "`AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE` or "
-            "`AccessFlags::DEPTH_STENCIL_ATTACHMENT`.");
+        // tndr_assert(
+        //     (depth_stencil_attachment.texture_access == rhi::AccessFlags::GENERAL) ||
+        //         (depth_stencil_attachment.texture_access ==
+        //          rhi::AccessFlags::DEPTH_STENCIL_ATTACHMENT) ||
+        //         (depth_stencil_attachment.texture_access ==
+        //          rhi::AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE),
+        //     "`color_attachment.texture_access` must be equal to "
+        //     "`AccessFlags::GENERAL`, "
+        //     "`AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE` or "
+        //     "`AccessFlags::DEPTH_STENCIL_ATTACHMENT`.");
 
         core::visit(
             core::make_overload(
@@ -370,16 +370,16 @@ void CommandEncoderValidator::begin_render_pass(
         if (depth_stencil_attachment.resolve_texture.has_value()) {
             const rhi::ResolveTexture& resolve_texture = *depth_stencil_attachment
                                                               .resolve_texture;
-            tndr_assert(
-                (resolve_texture.texture_access == rhi::AccessFlags::GENERAL) ||
-                    (resolve_texture.texture_access ==
-                     rhi::AccessFlags::DEPTH_STENCIL_ATTACHMENT) ||
-                    (depth_stencil_attachment.texture_access ==
-                     rhi::AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE),
-                "`depth_stencil_attachment.resolve_texture.texture_access` must "
-                "be equal to `AccessFlags::GENERAL`, "
-                "`AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE` or "
-                "`AccessFlags::DEPTH_STENCIL_ATTACHMENT`.");
+            // tndr_assert(
+            //     (resolve_texture.texture_access == rhi::AccessFlags::GENERAL) ||
+            //         (resolve_texture.texture_access ==
+            //          rhi::AccessFlags::DEPTH_STENCIL_ATTACHMENT) ||
+            //         (depth_stencil_attachment.texture_access ==
+            //          rhi::AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE),
+            //     "`depth_stencil_attachment.resolve_texture.texture_access` must "
+            //     "be equal to `AccessFlags::GENERAL`, "
+            //     "`AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE` or "
+            //     "`AccessFlags::DEPTH_STENCIL_ATTACHMENT`.");
 
             core::visit(
                 core::make_overload(

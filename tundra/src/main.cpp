@@ -17,6 +17,12 @@
 #include "meshlet_mesh.h"
 #include "pipelines.h"
 #include "renderer/frame_graph/frame_graph.h"
+#include "renderer/frame_graph2/builder.h"
+#include "renderer/frame_graph2/enums.h"
+#include "renderer/frame_graph2/frame_graph.h"
+#include "renderer/frame_graph2/resources/handle.h"
+#include "renderer/frame_graph2/resources/texture.h"
+#include "renderer/frame_graph2/resources/usage_flags.h"
 #include "renderer/renderer.h"
 #include "rhi/config.h"
 #include "rhi/rhi_context.h"
@@ -27,6 +33,7 @@
 #include <filesystem>
 #include <fstream>
 #include <ios>
+#include <ostream>
 #include <random>
 #include <thread>
 
@@ -168,8 +175,7 @@ protected:
                 }
                 break;
             }
-            default:
-                break;
+            default: break;
         }
     }
 
@@ -557,13 +563,9 @@ protected:
         const f32 fps = 1000.f / delta_time;
         const char* type = [&] {
             switch (m_renderer_type) {
-                case renderer::RendererType::Hardware:
-                    return "Hardware";
-                case renderer::RendererType::Software:
-                    return "Software";
-                case renderer::RendererType::MeshShaders:
-                    return "MeshShaders";
-                    break;
+                case renderer::RendererType::Hardware: return "Hardware";
+                case renderer::RendererType::Software: return "Software";
+                case renderer::RendererType::MeshShaders: return "MeshShaders"; break;
             }
 
             core::unreachable();
@@ -577,6 +579,124 @@ protected:
 
 int main(const int argc, const char* argv[])
 {
+    tundra::renderer::frame_graph2::FrameGraph fg(nullptr);
+    {
+        using namespace tundra::renderer::frame_graph2;
+        auto pass1 = fg.add_pass(
+            QueueType::Graphics,
+            "pass-1",
+            [&](Builder& builder) {
+                struct Data {
+                    TextureHandle depth;
+                    TextureHandle color;
+                };
+
+                auto depth = builder.create_texture(
+                    "depth",
+                    TextureCreateInfo {
+
+                    });
+                depth = builder.write(
+                    depth, TextureResourceUsage::DEPTH_STENCIL_ATTACHMENT);
+
+                auto color = builder.create_texture(
+                    "color",
+                    TextureCreateInfo {
+
+                    });
+                color = builder.write(color, TextureResourceUsage::COLOR_ATTACHMENT);
+
+                return Data {
+                    .depth = depth,
+                    .color = color,
+                };
+            },
+            [=](auto*, const Registry&, auto&, const auto&) {
+                //
+            });
+
+        auto pass2 = fg.add_pass(
+            QueueType::Graphics,
+            "pass-2",
+            [&](Builder& builder) {
+                struct Data {
+                    TextureHandle color;
+                    TextureHandle mask;
+                };
+
+                auto mask = builder.create_texture(
+                    "mask",
+                    TextureCreateInfo {
+
+                    });
+
+                auto color = builder.read(
+                    pass1.color, TextureResourceUsage::GRAPHICS_SAMPLED_IMAGE);
+                mask = builder.write(mask, TextureResourceUsage::GRAPHICS_SAMPLED_IMAGE);
+
+                return Data {
+                    .color = color,
+                    .mask = mask,
+                };
+            },
+            [=](auto*, const Registry&, auto&, const auto&) {
+                //
+            });
+
+        auto pass3 = fg.add_pass(
+            QueueType::Graphics,
+            "pass-3",
+            [&](Builder& builder) {
+                struct Data {
+                    TextureHandle depth;
+                    TextureHandle color;
+                };
+
+                auto depth = builder.read(
+                    pass1.depth, TextureResourceUsage::COMPUTE_STORAGE_IMAGE);
+
+                // auto color = builder.read(
+                //     pass2.color, TextureResourceUsage::COMPUTE_STORAGE_IMAGE);
+                auto color = builder.write(
+                    pass2.color, TextureResourceUsage::COMPUTE_STORAGE_IMAGE);
+
+                return Data {
+                    .depth = depth,
+                    .color = color,
+                };
+            },
+            [=](auto*, const Registry&, auto&, const auto&) {
+                //
+            });
+
+        auto pass4 = fg.add_pass(
+            QueueType::Graphics,
+            "pass-4",
+            [&](Builder& builder) {
+                builder.side_effect();
+                struct Data {
+                    TextureHandle color;
+                };
+
+                auto color = builder.read(
+                    pass3.color, TextureResourceUsage::COMPUTE_STORAGE_IMAGE);
+                auto mask = builder.read(
+                    pass2.mask, TextureResourceUsage::COMPUTE_STORAGE_IMAGE);
+
+                return Data {
+                    .color = color,
+                };
+            },
+            [=](auto*, const Registry&, auto&, const auto&) {
+                //
+            });
+    }
+    fg.compile();
+
+    std::ofstream file("graph.dot");
+    file << fg.export_graphviz();
+    return 0;
+
     using namespace tundra;
     rhi::IRHIModule* rhi_module = nullptr;
     core::UniquePtr<rhi::IRHIContext> rhi_context;

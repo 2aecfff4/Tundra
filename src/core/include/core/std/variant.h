@@ -6,12 +6,12 @@
 #include "core/std/utils.h"
 #include <concepts>
 #include <type_traits>
+#include <utility>
 
 namespace tundra::core {
 
 ///
-struct Monostate {
-};
+struct Monostate {};
 
 /// #TODO: Maybe generate jump table, instead of using fold expressions to generate `if` per type?
 template <typename... Ts>
@@ -57,9 +57,9 @@ public:
         typename OverloadType = core::OverloadResolutionT<T, VariantOverloadSet>>
     constexpr Variant(T&& t)                                       //
         noexcept(std::is_nothrow_constructible_v<T, OverloadType>) //
-        requires(
-            !std::is_same_v<std::decay_t<T>, Variant> &&
-            std::is_constructible_v<OverloadType, T>)
+    requires(
+        !std::is_same_v<std::decay_t<T>, Variant> &&
+        std::is_constructible_v<OverloadType, T>)
     {
         constexpr usize type_index =
             core::TypeIndexOf<std::decay_t<OverloadType>, VariantTypeList>::value;
@@ -68,10 +68,11 @@ public:
         this->set<OverloadType>(core::forward<T>(t));
     }
 
-    constexpr Variant(const Variant& rhs)                                        //
-        noexcept(std::conjunction_v<std::is_nothrow_copy_constructible<Ts>...>   //
-                     && std::conjunction_v<std::is_nothrow_destructible<Ts>...>) //
-        requires(std::is_copy_constructible_v<Ts>&&...)                          //
+    constexpr Variant(const Variant& rhs) //
+        noexcept(
+            std::conjunction_v<std::is_nothrow_copy_constructible<Ts>...> //
+            && std::conjunction_v<std::is_nothrow_destructible<Ts>...>)   //
+    requires(std::is_copy_constructible_v<Ts> && ...)                     //
     {
         (
             [&] {
@@ -84,10 +85,11 @@ public:
             ...);
     }
 
-    constexpr Variant& operator=(const Variant& rhs)                             //
-        noexcept(std::conjunction_v<std::is_nothrow_copy_constructible<Ts>...>   //
-                     && std::conjunction_v<std::is_nothrow_destructible<Ts>...>) //
-        requires(std::is_copy_constructible_v<Ts>&&...)
+    constexpr Variant& operator=(const Variant& rhs) //
+        noexcept(
+            std::conjunction_v<std::is_nothrow_copy_constructible<Ts>...> //
+            && std::conjunction_v<std::is_nothrow_destructible<Ts>...>)   //
+    requires(std::is_copy_constructible_v<Ts> && ...)
     {
         if (&rhs != this) {
             if (rhs.is_valueless()) {
@@ -107,10 +109,11 @@ public:
         return *this;
     }
 
-    constexpr Variant(Variant&& rhs)                                             //
-        noexcept(std::conjunction_v<std::is_nothrow_move_constructible<Ts>...>   //
-                     && std::conjunction_v<std::is_nothrow_destructible<Ts>...>) //
-        requires(std::is_move_constructible_v<Ts>&&...)
+    constexpr Variant(Variant&& rhs) //
+        noexcept(
+            std::conjunction_v<std::is_nothrow_move_constructible<Ts>...> //
+            && std::conjunction_v<std::is_nothrow_destructible<Ts>...>)   //
+    requires(std::is_move_constructible_v<Ts> && ...)
     {
         (
             [&] {
@@ -123,10 +126,11 @@ public:
             ...);
     }
 
-    constexpr Variant& operator=(Variant&& rhs)                                  //
-        noexcept(std::conjunction_v<std::is_nothrow_move_constructible<Ts>...>   //
-                     && std::conjunction_v<std::is_nothrow_destructible<Ts>...>) //
-        requires(std::is_move_constructible_v<Ts>&&...)
+    constexpr Variant& operator=(Variant&& rhs) //
+        noexcept(
+            std::conjunction_v<std::is_nothrow_move_constructible<Ts>...> //
+            && std::conjunction_v<std::is_nothrow_destructible<Ts>...>)   //
+    requires(std::is_move_constructible_v<Ts> && ...)
     {
         if (&rhs != this) {
             if (rhs.is_valueless()) {
@@ -151,11 +155,12 @@ public:
         typename T,
         typename OverloadType = core::OverloadResolutionT<T, VariantOverloadSet>>
     constexpr Variant& operator=(T&& t) //
-        noexcept(std::is_nothrow_constructible_v<T, OverloadType>&&
-                     std::conjunction_v<std::is_nothrow_destructible<Ts>...>) //
-        requires(
-            !std::is_same_v<std::decay_t<T>, Variant> &&
-            std::is_constructible_v<OverloadType, T>)
+        noexcept(
+            std::is_nothrow_constructible_v<T, OverloadType> &&
+            std::conjunction_v<std::is_nothrow_destructible<Ts>...>) //
+    requires(
+        !std::is_same_v<std::decay_t<T>, Variant> &&
+        std::is_constructible_v<OverloadType, T>)
     {
         constexpr usize type_index =
             core::TypeIndexOf<std::decay_t<OverloadType>, VariantTypeList>::value;
@@ -194,9 +199,10 @@ private:
 
 private:
     template <typename T, typename... Args>
-    void set(Args&&... args)                                                     //
-        noexcept(std::is_nothrow_constructible_v<T, Args...>                     //
-                     && std::conjunction_v<std::is_nothrow_destructible<Ts>...>) //
+    void set(Args&&... args) //
+        noexcept(
+            std::is_nothrow_constructible_v<T, Args...>                 //
+            && std::conjunction_v<std::is_nothrow_destructible<Ts>...>) //
     {
         constexpr usize type_index =
             core::TypeIndexOf<std::decay_t<T>, VariantTypeList>::value;
@@ -208,10 +214,7 @@ private:
     }
 
 public:
-    [[nodiscard]] constexpr i32 index() const noexcept
-    {
-        return m_index;
-    }
+    [[nodiscard]] constexpr i32 index() const noexcept { return m_index; }
 
 public:
     [[nodiscard]] constexpr bool is_valueless() const noexcept
@@ -422,7 +425,7 @@ template <typename... Ts>
 template <typename... Ts>
 [[nodiscard]] constexpr bool operator==(
     const Variant<Ts...>& lhs, const Variant<Ts...>& rhs) noexcept //
-    requires(std::equality_comparable<Ts>&&...)
+requires(std::equality_comparable<Ts> && ...)
 {
     if ((lhs.index() == rhs.index()) && !lhs.is_valueless()) {
         constexpr auto table = compare_impl::make_function_table<Ts...>();
@@ -434,7 +437,7 @@ template <typename... Ts>
 template <typename... Ts>
 [[nodiscard]] constexpr bool operator!=(
     const Variant<Ts...>& lhs, const Variant<Ts...>& rhs) noexcept //
-    requires(std::equality_comparable<Ts>&&...)
+requires(std::equality_comparable<Ts> && ...)
 {
     return !(lhs == rhs);
 }

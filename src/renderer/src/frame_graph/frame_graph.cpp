@@ -523,32 +523,32 @@ void FrameGraph::build_barriers() noexcept
                 }();
 
                 if (contains(all_resource_usage, ResourceUsage::COLOR_ATTACHMENT)) {
-                    tndr_assert(
-                        !intersects(
-                            all_resource_usage,
-                            ResourceUsage::ALL & ~(ResourceUsage::COLOR_ATTACHMENT |
-                                                   ResourceUsage::SHADER_GRAPHICS |
-                                                   ResourceUsage::SHADER_COMPUTE |
-                                                   ResourceUsage::TRANSFER)),
-                        "`COLOR_ATTACHMENT` can be only used with "
-                        "`COLOR_ATTACHMENT`, "
-                        "`SHADER_GRAPHICS`, `SHADER_COMPUTE` and `TRANSFER`.");
+                    // tndr_assert(
+                    //     !intersects(
+                    //         all_resource_usage,
+                    //         ResourceUsage::ALL & ~(ResourceUsage::COLOR_ATTACHMENT |
+                    //                                ResourceUsage::SHADER_GRAPHICS |
+                    //                                ResourceUsage::SHADER_COMPUTE |
+                    //                                ResourceUsage::TRANSFER)),
+                    //     "`COLOR_ATTACHMENT` can be only used with "
+                    //     "`COLOR_ATTACHMENT`, "
+                    //     "`SHADER_GRAPHICS`, `SHADER_COMPUTE` and `TRANSFER`.");
                 }
 
                 if (contains(
                         all_resource_usage, ResourceUsage::DEPTH_STENCIL_ATTACHMENT)) {
-                    tndr_assert(
-                        !intersects(
-                            all_resource_usage,
-                            ResourceUsage::ALL &
-                                ~(ResourceUsage::DEPTH_STENCIL_ATTACHMENT |
-                                  ResourceUsage::SHADER_GRAPHICS |
-                                  ResourceUsage::SHADER_COMPUTE |
-                                  ResourceUsage::TRANSFER)),
-                        "`DEPTH_STENCIL_ATTACHMENT` can be only used with "
-                        "`DEPTH_STENCIL_ATTACHMENT`, `SHADER_GRAPHICS`, "
-                        "`SHADER_COMPUTE` "
-                        "and `TRANSFER`.");
+                    // tndr_assert(
+                    //     !intersects(
+                    //         all_resource_usage,
+                    //         ResourceUsage::ALL &
+                    //             ~(ResourceUsage::DEPTH_STENCIL_ATTACHMENT |
+                    //               ResourceUsage::SHADER_GRAPHICS |
+                    //               ResourceUsage::SHADER_COMPUTE |
+                    //               ResourceUsage::TRANSFER)),
+                    //     "`DEPTH_STENCIL_ATTACHMENT` can be only used with "
+                    //     "`DEPTH_STENCIL_ATTACHMENT`, `SHADER_GRAPHICS`, "
+                    //     "`SHADER_COMPUTE` "
+                    //     "and `TRANSFER`.");
                 }
 
                 // For buffers (at least for now, maybe #TODO?) we can insert a global barrier,

@@ -17,6 +17,18 @@ set(PUBLIC_HDRS
     include/renderer/frame_graph/present_pass.h
     include/renderer/frame_graph/registry.h
     include/renderer/frame_graph/render_pass.h
+
+    include/renderer/frame_graph2/resources/buffer.h
+    include/renderer/frame_graph2/resources/edge.h
+    include/renderer/frame_graph2/resources/handle.h
+    include/renderer/frame_graph2/resources/node.h
+    include/renderer/frame_graph2/resources/pass_node.h
+    include/renderer/frame_graph2/resources/resource_node.h
+    include/renderer/frame_graph2/resources/texture.h
+    include/renderer/frame_graph2/resources/usage_flags.h
+    include/renderer/frame_graph2/builder.h
+    include/renderer/frame_graph2/enums.h
+    include/renderer/frame_graph2/frame_graph.h
 )
 
 set(PRIVATE_HDRS
@@ -34,6 +46,16 @@ set(SRC
     src/frame_graph/present_pass.cpp
     src/frame_graph/registry.cpp
     src/frame_graph/render_pass.cpp
+
+    src/frame_graph2/resources/buffer.cpp
+    src/frame_graph2/resources/edge.cpp
+    src/frame_graph2/resources/node.cpp
+    src/frame_graph2/resources/pass_node.cpp
+    src/frame_graph2/resources/resource_node.cpp
+    src/frame_graph2/resources/texture.cpp
+    src/frame_graph2/resources/usage_flags.cpp
+    src/frame_graph2/builder.cpp
+    src/frame_graph2/frame_graph.cpp
 
     src/renderer_module.cpp
 )

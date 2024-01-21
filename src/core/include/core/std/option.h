@@ -8,6 +8,8 @@ namespace tundra::core {
 template <typename T>
 using Option = std::optional<T>;
 
+using std::nullopt;
+
 ///
 template <typename T>
 struct Hash<Option<T>> {
